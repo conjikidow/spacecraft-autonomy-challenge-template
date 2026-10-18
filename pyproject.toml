@@ -1,0 +1,11 @@
+[project]
+name = "spacecraft-operations-challenge-submission"
+version = "0.1.0"
+description = "Participant submission for the Spacecraft Operations Challenge"
+requires-python = ">=3.12"
+dependencies = [
+    "spacecraft-operations-challenge-core",
+]
+
+[tool.uv.sources]
+spacecraft-operations-challenge-core = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core", rev = "3da20fd53407d0241d7ad275c9d8d4a96c275227" }
