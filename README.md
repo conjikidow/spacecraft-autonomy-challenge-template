@@ -1,0 +1,61 @@
+# Spacecraft Operations Challenge: Submission Template
+
+Start here to write a strategy for the Spacecraft Operations Challenge.
+A strategy operates a simulated spacecraft: it reads telemetry and schedules commands so that the spacecraft accumulates a target delta-v without violating its limits.
+
+The challenge problem, the simulator, and the `spacecraft-ops` command come from the [`spacecraft-operations-challenge-core`](https://github.com/conjikidow/spacecraft-operations-challenge-core) package, pinned to a specific commit in `pyproject.toml`.
+
+## Requirements
+
+- Python 3.12 or later
+- [uv](https://docs.astral.sh/uv/)
+
+## Setup
+
+```sh
+uv sync
+```
+
+## Running Your Strategy
+
+Your strategy is the `MyStrategy` class in `submission/strategy.py`.
+Run it on the `nominal` scenario:
+
+```sh
+uv run spacecraft-ops run submission/strategy.py:MyStrategy
+```
+
+The command prints how the run ended and its metrics, computed from the true spacecraft state.
+
+List the available scenarios and run another one:
+
+```sh
+uv run spacecraft-ops scenarios
+uv run spacecraft-ops run submission/strategy.py:MyStrategy --scenario thruster-degradation
+```
+
+Add `--json` to print the metrics as JSON.
+
+## Writing Your Strategy
+
+Put all of your code and files under `submission/`.
+The directory of the strategy file is put first on the import path, so `submission/strategy.py` can import other modules in `submission/`.
+To read a data file next to your code, build its path from `Path(__file__).parent`.
+
+Add the Python packages you need with uv, for example:
+
+```sh
+uv add numpy
+```
+
+## Documentation
+
+The core repository documents the API and the challenge, at the commit this template uses:
+
+- [Writing a Strategy](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/docs/strategy.md): lifecycle, mission brief, and commander
+- [Commands and Timeline](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/docs/timeline.md): command types and ordering rules
+- [Spacecraft Model](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/docs/spacecraft-model.md): state, dynamics, and telemetry
+- [Simulation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/docs/simulation.md): order of events and termination
+- [Challenge Problem](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/docs/challenge.md): the problem and its public scenarios
+- [Evaluation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/docs/evaluation.md): the metrics printed after a run
+- [Command-Line Runner](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/README.md#command-line-runner): options and exit status

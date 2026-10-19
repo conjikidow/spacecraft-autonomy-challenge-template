@@ -1,0 +1,19 @@
+version = 1
+revision = 5
+requires-python = ">=3.12"
+
+[[package]]
+name = "spacecraft-operations-challenge-core"
+version = "0.1.0"
+source = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?rev=3da20fd53407d0241d7ad275c9d8d4a96c275227#3da20fd53407d0241d7ad275c9d8d4a96c275227" }
+
+[[package]]
+name = "spacecraft-operations-challenge-submission"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "spacecraft-operations-challenge-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "spacecraft-operations-challenge-core", git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?rev=3da20fd53407d0241d7ad275c9d8d4a96c275227" }]
