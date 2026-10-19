@@ -1,5 +1,7 @@
 # Spacecraft Operations Challenge: Submission Template
 
+[![License](https://img.shields.io/badge/license-MIT--0-blue.svg?style=flat)](LICENSE)
+
 Start here to write a strategy for the Spacecraft Operations Challenge.
 A strategy operates a simulated spacecraft: it reads telemetry and schedules commands so that the spacecraft accumulates a target delta-v without violating its limits.
 
@@ -59,3 +61,8 @@ The core repository documents the API and the challenge, at the commit this temp
 - [Challenge Problem](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/docs/challenge.md): the problem and its public scenarios
 - [Evaluation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/docs/evaluation.md): the metrics printed after a run
 - [Command-Line Runner](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/3da20fd53407d0241d7ad275c9d8d4a96c275227/README.md#command-line-runner): options and exit status
+
+## License
+
+This template is licensed under [MIT-0](LICENSE), so you can build your submission on it without carrying a notice along.
+Files you add are yours, and you may license them however you like.
