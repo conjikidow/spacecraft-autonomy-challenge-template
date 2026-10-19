@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 [[package]]
 name = "spacecraft-operations-challenge-core"
 version = "0.1.0"
-source = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?rev=3da20fd53407d0241d7ad275c9d8d4a96c275227#3da20fd53407d0241d7ad275c9d8d4a96c275227" }
+source = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?rev=f413131d8aa46a8cdafbffd1b4a4cd65d80ae887#f413131d8aa46a8cdafbffd1b4a4cd65d80ae887" }
 
 [[package]]
 name = "spacecraft-operations-challenge-submission"
@@ -16,4 +16,4 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "spacecraft-operations-challenge-core", git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?rev=3da20fd53407d0241d7ad275c9d8d4a96c275227" }]
+requires-dist = [{ name = "spacecraft-operations-challenge-core", git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?rev=f413131d8aa46a8cdafbffd1b4a4cd65d80ae887" }]

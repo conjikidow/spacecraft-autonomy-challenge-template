@@ -2,10 +2,10 @@
 
 Run it with:
 
-    uv run spacecraft-ops run submission/strategy.py:MyStrategy
+    uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy
 """
 
-from spacecraft_ops import Commander, MissionBrief, Strategy, Telemetry
+from spacecraft_ops_challenge import Commander, MissionBrief, Strategy, Telemetry
 
 
 class MyStrategy(Strategy):
