@@ -60,7 +60,7 @@ def _():
         return rows
 
     def _table(title, rows):
-        return "\n".join([f"**{title}**", "", "| Field | Value |", "|---|---|", *rows])
+        return "\n".join([f"| {title} | Value |", "|:---|:---|", *rows])
 
     _problem = problem()
     _goal_rows = [
@@ -80,14 +80,14 @@ def _():
                     mo.md(_table("Safety limits", _value_rows(_problem.limits))),
                     mo.md(_table("Initial state", _value_rows(_problem.initial_state))),
                 ],
-                wrap=True,
-                justify="start",
+                widths="equal",
+                align="start",
                 gap=2,
             ),
             mo.accordion(
                 {
                     "Nominal spacecraft parameters": mo.md(
-                        _table("Parameters", _value_rows(_problem.parameters))
+                        _table("Parameter", _value_rows(_problem.parameters))
                     )
                 }
             ),
@@ -235,7 +235,7 @@ def _(load_error, result, strategy_output):
         _sections.append(
             mo.md(
                 "\n".join(
-                    ["| Metric | Value |", "|---|---|"]
+                    ["| Metric | Value |", "|:---|:---|"]
                     + [f"| {label} | {value} |" for label, value in _rows]
                 )
             )
@@ -311,22 +311,52 @@ def build_submission_zip():
 
 @app.cell(hide_code=True)
 def _():
+    prepare_button = mo.ui.run_button(label="Prepare submission.zip")
+    return (prepare_button,)
+
+
+@app.cell(hide_code=True)
+def _(prepare_button):
+    _bundle = None
+    if prepare_button.value:
+        try:
+            _data = build_submission_zip()
+        except ValueError as error:
+            _bundle = mo.callout(
+                str(error), kind="danger", title="Could not prepare submission.zip"
+            )
+        else:
+            _names = zipfile.ZipFile(io.BytesIO(_data)).namelist()
+            _bundle = mo.vstack(
+                [
+                    mo.download(
+                        data=_data,
+                        filename="submission.zip",
+                        mimetype="application/zip",
+                        label="Download submission.zip",
+                    ),
+                    mo.accordion(
+                        {
+                            f"Contents ({len(_names)} files)": mo.plain_text(
+                                "\n".join(_names)
+                            )
+                        }
+                    ),
+                ]
+            )
     mo.vstack(
         [
             mo.md(
                 """
                 ## Prepare submission
 
-                The download packs the whole `submission/` directory as it is on disk
-                when you click, without Python bytecode caches.
+                Pack the whole `submission/` directory as it is on disk now,
+                without Python bytecode caches.
+                Prepare it again after you change any file.
                 """
             ),
-            mo.download(
-                data=build_submission_zip,
-                filename="submission.zip",
-                mimetype="application/zip",
-                label="Download submission.zip",
-            ),
+            prepare_button,
+            _bundle,
         ]
     )
     return
