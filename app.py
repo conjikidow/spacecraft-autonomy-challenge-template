@@ -7,6 +7,8 @@ with app.setup:
     import contextlib
     import dataclasses
     import importlib
+    import importlib.abc
+    import importlib.machinery
     import importlib.util
     import io
     import os
@@ -26,6 +28,9 @@ with app.setup:
     STRATEGY_FILE = SUBMISSION_DIR / "strategy.py"
     STRATEGY_CLASS = "MyStrategy"
 
+    class SubmissionLoadError(Exception):
+        """Raised when the participant's strategy cannot be imported or instantiated."""
+
 
 @app.cell(hide_code=True)
 def _():
@@ -42,7 +47,7 @@ def _():
        Every run loads the current files from disk,
        so there is no need to restart this notebook.
     3. Inspect the result and iterate.
-    4. Download `submission.zip` when you need the bundle.
+    4. Prepare and download `submission.zip` when you need the bundle.
     """)
     return
 
@@ -138,33 +143,69 @@ def forget_submission_modules():
             del sys.modules[name]
 
 
+@app.class_definition
+class SourceOnlyLoader(importlib.machinery.SourceFileLoader):
+    """Loader that compiles from source and never reads or writes bytecode caches.
+
+    A cache that still matches a file's size and timestamp, which has a resolution of
+    one second, could otherwise hide an edit made right after the previous run.
+    """
+
+    def get_code(self, fullname):
+        return compile(self.get_data(self.path), self.path, "exec", dont_inherit=True)
+
+
+@app.class_definition
+class SubmissionFinder(importlib.abc.MetaPathFinder):
+    """Import hook that loads source files under `submission/` from source only."""
+
+    def find_spec(self, fullname, path, target=None):
+        spec = importlib.machinery.PathFinder.find_spec(fullname, path)
+        if not (
+            spec is not None
+            and isinstance(spec.loader, importlib.machinery.SourceFileLoader)
+            and Path(spec.origin).resolve().is_relative_to(SUBMISSION_DIR)
+        ):
+            return None
+        spec.loader = SourceOnlyLoader(fullname, spec.origin)
+        return spec
+
+
 @app.function
 def load_strategy():
     """Instantiate `MyStrategy` from the current files under `submission/`.
 
     Like the command-line runner, `submission/` is put first on the import path so that
     `strategy.py` can import sibling modules, which are also read again from disk.
+    Raises `SubmissionLoadError`, chained to the participant's exception, if the code
+    cannot be imported or instantiated.
     """
     forget_submission_modules()
     importlib.invalidate_caches()
-    if str(SUBMISSION_DIR) not in sys.path:
-        sys.path.insert(0, str(SUBMISSION_DIR))
-    spec = importlib.util.spec_from_file_location("_submission_strategy", STRATEGY_FILE)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    # Without bytecode caches, an edit made within a second of the previous run
-    # cannot be masked by a cache that still matches the file's size and timestamp.
-    dont_write_bytecode, sys.dont_write_bytecode = sys.dont_write_bytecode, True
+    entry = str(SUBMISSION_DIR)
+    while entry in sys.path:
+        sys.path.remove(entry)
+    sys.path.insert(0, entry)
+    if not any(isinstance(finder, SubmissionFinder) for finder in sys.meta_path):
+        sys.meta_path.insert(0, SubmissionFinder())
+    loader = SourceOnlyLoader("_submission_strategy", str(STRATEGY_FILE))
+    module = importlib.util.module_from_spec(
+        importlib.util.spec_from_loader(loader.name, loader)
+    )
+    sys.modules[loader.name] = module
     try:
-        spec.loader.exec_module(module)
-    finally:
-        sys.dont_write_bytecode = dont_write_bytecode
+        loader.exec_module(module)
+    except Exception as error:
+        raise SubmissionLoadError(f"cannot import {STRATEGY_FILE.name}") from error
     strategy_class = getattr(module, STRATEGY_CLASS, None)
     if not (isinstance(strategy_class, type) and issubclass(strategy_class, Strategy)):
-        raise TypeError(
+        raise SubmissionLoadError(
             f"{STRATEGY_FILE.name} must define {STRATEGY_CLASS} as a Strategy subclass"
         )
-    return strategy_class()
+    try:
+        return strategy_class()
+    except Exception as error:
+        raise SubmissionLoadError(f"cannot instantiate {STRATEGY_CLASS}") from error
 
 
 @app.cell(hide_code=True)
@@ -179,8 +220,8 @@ def _(run_button, scenario_picker):
     with contextlib.redirect_stdout(_output), contextlib.redirect_stderr(_output):
         try:
             _strategy = load_strategy()
-        except Exception:
-            load_error = traceback.format_exc()
+        except SubmissionLoadError as error:
+            load_error = "".join(traceback.format_exception(error))
         else:
             result = run(_strategy, scenario(scenario_picker.value))
     strategy_output = _output.getvalue()
@@ -289,14 +330,22 @@ def build_submission_zip():
     """Zip the current `submission/` directory, keeping it as the top-level folder.
 
     Python bytecode caches are left out.
-    Symbolic links are rejected instead of followed.
+    Raises `ValueError` for a missing strategy file or a symbolic link, which is
+    rejected instead of followed, and `OSError` for a file that cannot be read.
     """
+    if not STRATEGY_FILE.is_file():
+        raise ValueError(f"submission/{STRATEGY_FILE.name} is missing")
+
+    def _raise(error):
+        raise error
+
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
-        for directory, dirnames, filenames in os.walk(SUBMISSION_DIR):
+    with zipfile.ZipFile(
+        buffer, "w", zipfile.ZIP_DEFLATED, strict_timestamps=False
+    ) as archive:
+        for directory, dirnames, filenames in os.walk(SUBMISSION_DIR, onerror=_raise):
             directory = Path(directory)
-            dirnames[:] = sorted(name for name in dirnames if name != "__pycache__")
-            for name in [*dirnames, *sorted(filenames)]:
+            for name in sorted([*dirnames, *filenames]):
                 path = directory / name
                 relative = path.relative_to(SUBMISSION_DIR)
                 if path.is_symlink():
@@ -306,6 +355,7 @@ def build_submission_zip():
                     )
                 if path.is_file() and path.suffix not in (".pyc", ".pyo"):
                     archive.write(path, f"submission/{relative.as_posix()}")
+            dirnames[:] = sorted(name for name in dirnames if name != "__pycache__")
     return buffer.getvalue()
 
 
@@ -317,48 +367,48 @@ def _():
 
 @app.cell(hide_code=True)
 def _(prepare_button):
-    _bundle = None
+    _sections = [
+        mo.md(
+            """
+            ## Prepare submission
+
+            Pack the whole `submission/` directory as it is on disk now,
+            without Python bytecode caches.
+            Prepare it again after you change any file.
+            """
+        ),
+        prepare_button,
+    ]
     if prepare_button.value:
         try:
             _data = build_submission_zip()
-        except ValueError as error:
-            _bundle = mo.callout(
-                str(error), kind="danger", title="Could not prepare submission.zip"
+        except (ValueError, OSError) as error:
+            _sections.append(
+                mo.callout(
+                    str(error), kind="danger", title="Could not prepare submission.zip"
+                )
             )
         else:
-            _names = zipfile.ZipFile(io.BytesIO(_data)).namelist()
-            _bundle = mo.vstack(
-                [
-                    mo.download(
-                        data=_data,
-                        filename="submission.zip",
-                        mimetype="application/zip",
-                        label="Download submission.zip",
-                    ),
-                    mo.accordion(
-                        {
-                            f"Contents ({len(_names)} files)": mo.plain_text(
-                                "\n".join(_names)
-                            )
-                        }
-                    ),
-                ]
+            with zipfile.ZipFile(io.BytesIO(_data)) as _archive:
+                _names = _archive.namelist()
+            _sections.append(
+                mo.download(
+                    data=_data,
+                    filename="submission.zip",
+                    mimetype="application/zip",
+                    label="Download submission.zip",
+                )
             )
-    mo.vstack(
-        [
-            mo.md(
-                """
-                ## Prepare submission
-
-                Pack the whole `submission/` directory as it is on disk now,
-                without Python bytecode caches.
-                Prepare it again after you change any file.
-                """
-            ),
-            prepare_button,
-            _bundle,
-        ]
-    )
+            _sections.append(
+                mo.accordion(
+                    {
+                        f"Contents ({len(_names)} files)": mo.plain_text(
+                            "\n".join(_names)
+                        )
+                    }
+                )
+            )
+    mo.vstack(_sections)
     return
 
 
