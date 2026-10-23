@@ -24,7 +24,8 @@ with app.setup:
     from spacecraft_ops_challenge.results import TerminationReason
     from spacecraft_ops_challenge.simulation import run
 
-    SUBMISSION_DIR = (Path(__file__).parent / "submission").resolve()
+    REPOSITORY_DIR = Path(__file__).resolve().parent
+    SUBMISSION_DIR = (REPOSITORY_DIR / "submission").resolve()
     STRATEGY_FILE = SUBMISSION_DIR / "strategy.py"
     STRATEGY_CLASS = "MyStrategy"
 
@@ -187,7 +188,11 @@ def load_strategy():
         sys.path.remove(entry)
     sys.path.insert(0, entry)
     if not any(isinstance(finder, SubmissionFinder) for finder in sys.meta_path):
-        sys.meta_path.insert(0, SubmissionFinder())
+        # Right before the path-based finder, so built-in and frozen modules keep
+        # precedence as they do under the command-line runner.
+        sys.meta_path.insert(
+            sys.meta_path.index(importlib.machinery.PathFinder), SubmissionFinder()
+        )
     loader = SourceOnlyLoader("_submission_strategy", str(STRATEGY_FILE))
     module = importlib.util.module_from_spec(
         importlib.util.spec_from_loader(loader.name, loader)
@@ -251,8 +256,10 @@ def _(load_error, result, strategy_output):
             ("Termination reason", f"`{_metrics.termination_reason}`"),
             (
                 "End time",
-                f"{_metrics.end_time_s:.1f} s "
-                f"(time limit {_metrics.time_limit_s:.1f} s)",
+                (
+                    f"{_metrics.end_time_s:.1f} s "
+                    f"(time limit {_metrics.time_limit_s:.1f} s)"
+                ),
             ),
             ("Completion declared", _declared),
             ("Safe", "yes" if _metrics.safe else "no"),
@@ -265,8 +272,10 @@ def _(load_error, result, strategy_output):
             ("Minimum battery energy", f"{_metrics.min_battery_energy_wh:.2f} Wh"),
             (
                 "Propulsion temperature range",
-                f"{_metrics.min_propulsion_temperature_c:.2f} to "
-                f"{_metrics.max_propulsion_temperature_c:.2f} C",
+                (
+                    f"{_metrics.min_propulsion_temperature_c:.2f} to "
+                    f"{_metrics.max_propulsion_temperature_c:.2f} C"
+                ),
             ),
             (
                 "Maximum absolute wheel momentum",
@@ -333,6 +342,8 @@ def build_submission_zip():
     Raises `ValueError` for a missing strategy file or a symbolic link, which is
     rejected instead of followed, and `OSError` for a file that cannot be read.
     """
+    if (REPOSITORY_DIR / "submission").is_symlink():
+        raise ValueError("submission/ is a symbolic link; replace it with a directory")
     if not STRATEGY_FILE.is_file():
         raise ValueError(f"submission/{STRATEGY_FILE.name} is missing")
 
