@@ -92,7 +92,9 @@ def _():
 
     def _arguments(command):
         fields = dataclasses.fields(command)
-        return ", ".join(f"`{field.name}`: {_type(field.type)}" for field in fields)
+        return ", ".join(
+            f"`{field.name}`:&nbsp;{_type(field.type)}" for field in fields
+        )
 
     def _table(headers, rows):
         return "\n".join(
