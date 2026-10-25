@@ -43,13 +43,15 @@ def _():
     and every other file it needs (Python modules, planning models, model weights,
     configuration, data) also belongs under `submission/`.
 
-    1. Edit the files under `submission/`.
+    1. Edit `submission/strategy.py` in the **Strategy** editor below.
+       Add or edit any other file under `submission/` from the Files panel.
     2. Select a public scenario and click **Run public scenario**.
        Every run loads the current files from disk,
        so there is no need to restart this notebook.
     3. Inspect the result and iterate.
     4. Prepare and download `submission.zip` when you need the bundle.
     """)
+    return
 
 
 @app.cell(hide_code=True)
@@ -98,6 +100,48 @@ def _():
             ),
         ]
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    # Send the value only when the editor loses focus, so the file is written once
+    # per edit instead of on every keystroke.
+    strategy_editor = mo.ui.code_editor(
+        value=STRATEGY_FILE.read_text(encoding="utf-8"),
+        language="python",
+        debounce=True,
+    )
+    return (strategy_editor,)
+
+
+@app.cell(hide_code=True)
+def _(strategy_editor):
+    _sections = [
+        mo.md(
+            """
+            ## Strategy
+
+            The contents of `submission/strategy.py`.
+            Changes are saved to disk when the editor loses focus.
+            If you change this file outside this editor,
+            reload the notebook before editing it here,
+            or the editor will overwrite that change.
+            """
+        ),
+        strategy_editor,
+    ]
+    try:
+        if strategy_editor.value != STRATEGY_FILE.read_text(encoding="utf-8"):
+            STRATEGY_FILE.write_text(strategy_editor.value, encoding="utf-8")
+    except OSError as error:
+        _sections.append(
+            mo.callout(
+                str(error), kind="danger", title="Could not save submission/strategy.py"
+            )
+        )
+    mo.vstack(_sections)
+    return
 
 
 @app.cell(hide_code=True)
@@ -121,6 +165,7 @@ def _(run_button, scenario_picker):
             mo.md(scenario(scenario_picker.value).description),
         ]
     )
+    return
 
 
 @app.function(hide_code=True)
@@ -328,6 +373,7 @@ def _(load_error, result, strategy_output):
         )
     )
     mo.vstack(_sections)
+    return
 
 
 @app.function(hide_code=True)
@@ -416,6 +462,7 @@ def _(prepare_button):
                 )
             )
     mo.vstack(_sections)
+    return
 
 
 if __name__ == "__main__":
