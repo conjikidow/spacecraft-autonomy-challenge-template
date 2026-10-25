@@ -11,3 +11,8 @@ dependencies = [
 
 [tool.uv.sources]
 spacecraft-operations-challenge-core = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core", rev = "f413131d8aa46a8cdafbffd1b4a4cd65d80ae887" }
+
+[dependency-groups]
+dev = [
+    "marimo>=0.25.2",
+]
