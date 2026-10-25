@@ -12,7 +12,10 @@ class MyStrategy(Strategy):
     def initialize(
         self, brief: MissionBrief, telemetry: Telemetry, commander: Commander
     ) -> None:
-        """Called once at time 0. Schedule commands with `commander.schedule(time_s, command)`."""
+        """Called once at time 0.
+
+        Schedule commands with `commander.schedule(time_s, command)`.
+        """
         print(brief)
         print(telemetry)
 
