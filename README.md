@@ -3,9 +3,12 @@
 [![License](https://img.shields.io/badge/license-MIT--0-blue.svg?style=flat)](LICENSE)
 
 Start here to write a strategy for the Spacecraft Operations Challenge.
-A strategy operates a simulated spacecraft: it reads telemetry and schedules commands so that the spacecraft accumulates a target delta-v without violating its limits.
+A strategy operates a simulated spacecraft: it reads telemetry and schedules commands
+so that the spacecraft accumulates a target delta-v without violating its limits.
 
-The challenge problem, the simulator, and the `spacecraft-ops-challenge` command come from the [`spacecraft-operations-challenge-core`](https://github.com/conjikidow/spacecraft-operations-challenge-core) package, pinned to a release tag in `pyproject.toml`.
+The challenge problem, the simulator, and the `spacecraft-ops-challenge` command come from the
+[`spacecraft-operations-challenge-core`](https://github.com/conjikidow/spacecraft-operations-challenge-core) package,
+pinned to a release tag in `pyproject.toml`.
 
 ## Requirements
 
@@ -41,7 +44,8 @@ Add `--json` to print the metrics as JSON.
 ## Writing Your Strategy
 
 Put all of your code and files under `submission/`.
-The directory of the strategy file is put first on the import path, so `submission/strategy.py` can import other modules in `submission/`.
+The directory of the strategy file is put first on the import path,
+so `submission/strategy.py` can import other modules in `submission/`.
 To read a data file next to your code, build its path from `Path(__file__).parent`.
 
 Add the Python packages you need with uv, for example:
