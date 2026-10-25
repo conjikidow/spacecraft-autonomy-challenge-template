@@ -128,6 +128,7 @@ def _():
         alt="Two thrusters offset from the center of mass "
         "and a single-axis reaction wheel",
         width=480,
+        style={"min-width": "0"},
     )
     mo.vstack(
         [
@@ -140,7 +141,7 @@ def _():
                                 _table(
                                     ("Telemetry field", "Type", "Unit"), _telemetry_rows
                                 )
-                            ),
+                            ).style(min_width="max-content"),
                             _figure,
                         ],
                         justify="start",
