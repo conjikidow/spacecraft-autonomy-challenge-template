@@ -9,7 +9,7 @@
       customType: 'regex',
       description: 'Keep the README links to the core documentation on the pinned core tag',
       managerFilePatterns: [
-        '/^README\\.md$/',
+        '/^README(\\.ja)?\\.md$/',
       ],
       matchStrings: [
         'https://github\\.com/conjikidow/spacecraft-operations-challenge-core/blob/(?<currentValue>v\\d+\\.\\d+\\.\\d+)/',
