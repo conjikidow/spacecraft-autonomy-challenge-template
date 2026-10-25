@@ -550,7 +550,7 @@ source = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-
 
 [[package]]
 name = "spacecraft-operations-challenge-submission"
-version = "0.1.0"
+version = "0.1.1"
 source = { virtual = "." }
 dependencies = [
     { name = "spacecraft-operations-challenge-core" },
