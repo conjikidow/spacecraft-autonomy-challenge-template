@@ -88,9 +88,6 @@ def _():
         return " ".join(inspect.getdoc(obj).split())
 
     def _type(annotation):
-        if issubclass(annotation, enum.Enum):
-            members = ", ".join(f"`{member.name}`" for member in annotation)
-            return f"`{annotation.__name__}` ({members})"
         return f"`{annotation.__name__}`"
 
     def _arguments(command):
@@ -110,13 +107,25 @@ def _():
         f"| `{command.__name__}` | {_arguments(command) or '-'} | {_doc(command)} |"
         for command in typing.get_args(Command)
     ]
+    _types = [field.type for field in dataclasses.fields(Telemetry)] + [
+        field.type
+        for command in typing.get_args(Command)
+        for field in dataclasses.fields(command)
+    ]
+    _enum_lines = [
+        f"`{annotation.__name__}` is one of "
+        + ", ".join(f"`{member.name}`" for member in annotation)
+        + "."
+        for annotation in dict.fromkeys(_types)
+        if issubclass(annotation, enum.Enum)
+    ]
     _figure = mo.image(
         importlib.resources.files("spacecraft_ops_challenge")
         / "figures"
         / "spacecraft-geometry.svg",
         alt="Two thrusters offset from the center of mass "
         "and a single-axis reaction wheel",
-        width=360,
+        width=480,
     )
     mo.vstack(
         [
@@ -140,6 +149,7 @@ def _():
                 ],
                 gap=1.5,
             ),
+            mo.md("\n\n".join(_enum_lines)),
             mo.md(
                 f"Details: [Spacecraft Model]({CORE_DOCS_URL}/spacecraft-model.md), "
                 f"[Commands and Timeline]({CORE_DOCS_URL}/timeline.md)"
