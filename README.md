@@ -2,6 +2,8 @@
 
 [![License](https://img.shields.io/badge/license-MIT--0-blue.svg?style=flat)](LICENSE)
 
+**English** | [日本語](README.ja.md)
+
 Start here to write a strategy for the Spacecraft Operations Challenge.
 A strategy operates a simulated spacecraft: it reads telemetry and schedules commands
 so that the spacecraft accumulates a target delta-v without violating its limits.
