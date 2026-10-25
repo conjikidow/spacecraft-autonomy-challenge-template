@@ -5,7 +5,22 @@ Run it with:
     uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy
 """
 
-from spacecraft_ops_challenge import Commander, MissionBrief, Strategy, Telemetry
+from spacecraft_ops_challenge import (  # noqa: F401
+    Commander,
+    CommandError,
+    CommandId,
+    DeclareCompletion,
+    MissionBrief,
+    PropulsionMode,
+    SafetyLimits,
+    ScheduledCommand,
+    SetHeater,
+    SetPropulsionMode,
+    SpacecraftParameters,
+    Strategy,
+    Telemetry,
+    ThrusterParameters,
+)
 
 
 class MyStrategy(Strategy):
