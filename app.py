@@ -37,6 +37,26 @@ with app.setup(hide_code=True):
         f"/blob/v{__version__}/docs"
     )
 
+    FIELD_UNITS = {
+        "_nms_per_s": "Nms/s",
+        "_j_per_k": "J/K",
+        "_w_per_k": "W/K",
+        "_mps2": "m/s²",
+        "_mps": "m/s",
+        "_nms": "Nms",
+        "_wh": "Wh",
+        "_w": "W",
+        "_c": "°C",
+        "_s": "s",
+    }
+
+    def field_unit(name):
+        """Return the unit encoded in a field name's suffix, or `-` if there is none."""
+        for suffix, unit in FIELD_UNITS.items():
+            if name.endswith(suffix):
+                return unit
+        return "-"
+
     class SubmissionLoadError(Exception):
         """Raised when the participant's strategy cannot be imported or instantiated."""
 
@@ -82,7 +102,7 @@ def _():
         )
 
     _telemetry_rows = [
-        f"| `{field.name}` | {_type(field.type)} |"
+        f"| `{field.name}` | {_type(field.type)} | {field_unit(field.name)} |"
         for field in dataclasses.fields(Telemetry)
     ]
     _command_rows = [
@@ -92,10 +112,9 @@ def _():
     mo.vstack(
         [
             mo.md("## Spacecraft"),
-            mo.md("Units are part of every field name."),
             mo.vstack(
                 [
-                    mo.md(_table(("Telemetry field", "Type"), _telemetry_rows)),
+                    mo.md(_table(("Telemetry field", "Type", "Unit"), _telemetry_rows)),
                     mo.md(_table(("Command", "Arguments", "Effect"), _command_rows)),
                 ],
                 gap=1.5,
@@ -117,33 +136,32 @@ def _():
             if dataclasses.is_dataclass(value):
                 rows.extend(_value_rows(value, f"{prefix}{field.name}."))
             else:
-                rows.append(f"| `{prefix}{field.name}` | {value} |")
+                rows.append(
+                    f"| `{prefix}{field.name}` | {value} | {field_unit(field.name)} |"
+                )
         return rows
 
     def _table(title, rows):
-        return "\n".join([f"| {title} | Value |", "|:---|:---|", *rows])
+        return "\n".join([f"| {title} | Value | Unit |", "|:---|:---|:---|", *rows])
 
     _problem = problem()
     _goal_rows = [
-        f"| `{name}` | {getattr(_problem, name)} |"
+        f"| `{name}` | {getattr(_problem, name)} | {field_unit(name)} |"
         for name in ("target_delta_v_mps", "time_limit_s", "decision_period_s")
     ]
     mo.vstack(
         [
             mo.md("## Mission"),
-            mo.md(
-                "The public problem shared by all scenarios. "
-                "Units are part of every field name."
-            ),
+            mo.md("The public problem shared by all scenarios."),
             mo.md(
                 _table(
                     "Field",
                     [
-                        "| **Initial state** | |",
+                        "| **Initial state** | | |",
                         *_value_rows(_problem.initial_state),
-                        "| **Goal and timing** | |",
+                        "| **Goal and timing** | | |",
                         *_goal_rows,
-                        "| **Safety limits** | |",
+                        "| **Safety limits** | | |",
                         *_value_rows(_problem.limits),
                     ],
                 )
@@ -431,7 +449,7 @@ def _(load_error, result, strategy_output):
                 "Propulsion temperature range",
                 (
                     f"{_metrics.min_propulsion_temperature_c:.2f} to "
-                    f"{_metrics.max_propulsion_temperature_c:.2f} C"
+                    f"{_metrics.max_propulsion_temperature_c:.2f} °C"
                 ),
             ),
             (
