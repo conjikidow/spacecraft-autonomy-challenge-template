@@ -255,27 +255,34 @@ def load_strategy():
 
 @app.cell(hide_code=True)
 def _(run_button, scenario_picker):
-    mo.stop(
-        not run_button.value,
-        mo.md("Select a scenario and click **Run** to see the result."),
-    )
-    _output = io.StringIO()
     load_error = ""
     result = None
-    with contextlib.redirect_stdout(_output), contextlib.redirect_stderr(_output):
-        try:
-            _strategy = load_strategy()
-        except SubmissionLoadError as error:
-            load_error = "".join(traceback.format_exception(error))
-        else:
-            result = run(_strategy, scenario(scenario_picker.value))
-    strategy_output = _output.getvalue()
+    strategy_output = ""
+    if run_button.value:
+        _output = io.StringIO()
+        with contextlib.redirect_stdout(_output), contextlib.redirect_stderr(_output):
+            try:
+                _strategy = load_strategy()
+            except SubmissionLoadError as error:
+                load_error = "".join(traceback.format_exception(error))
+            else:
+                result = run(_strategy, scenario(scenario_picker.value))
+        strategy_output = _output.getvalue()
     return load_error, result, strategy_output
 
 
 @app.cell(hide_code=True)
 def _(load_error, result, strategy_output):
     _sections = [mo.md("## Result")]
+    mo.stop(
+        result is None and not load_error,
+        mo.vstack(
+            [
+                *_sections,
+                mo.md("Select a scenario and click **Run** to see the result."),
+            ]
+        ),
+    )
     if load_error:
         _sections.append(
             mo.callout(
