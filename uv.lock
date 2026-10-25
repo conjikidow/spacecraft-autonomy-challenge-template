@@ -545,8 +545,8 @@ wheels = [
 
 [[package]]
 name = "spacecraft-operations-challenge-core"
-version = "0.1.1"
-source = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?tag=v0.1.1#9c08ae8161a70bd270ce888c9fd46d863ce48477" }
+version = "0.1.2"
+source = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?tag=v0.1.2#afbd421ce1e086eaf89539841c623f4ca9711e2a" }
 
 [[package]]
 name = "spacecraft-operations-challenge-submission"
@@ -566,7 +566,7 @@ lint = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "spacecraft-operations-challenge-core", git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?tag=v0.1.1" }]
+requires-dist = [{ name = "spacecraft-operations-challenge-core", git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?tag=v0.1.2" }]
 
 [package.metadata.requires-dev]
 dev = [

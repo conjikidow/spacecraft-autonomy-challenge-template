@@ -10,6 +10,7 @@ with app.setup(hide_code=True):
     import importlib
     import importlib.abc
     import importlib.machinery
+    import importlib.resources
     import importlib.util
     import inspect
     import io
@@ -87,14 +88,13 @@ def _():
         return " ".join(inspect.getdoc(obj).split())
 
     def _type(annotation):
-        if issubclass(annotation, enum.Enum):
-            members = ", ".join(f"`{member.name}`" for member in annotation)
-            return f"`{annotation.__name__}` ({members})"
         return f"`{annotation.__name__}`"
 
     def _arguments(command):
         fields = dataclasses.fields(command)
-        return ", ".join(f"`{field.name}`: {_type(field.type)}" for field in fields)
+        return ", ".join(
+            f"`{field.name}`:&nbsp;{_type(field.type)}" for field in fields
+        )
 
     def _table(headers, rows):
         return "\n".join(
@@ -109,16 +109,50 @@ def _():
         f"| `{command.__name__}` | {_arguments(command) or '-'} | {_doc(command)} |"
         for command in typing.get_args(Command)
     ]
+    _types = [field.type for field in dataclasses.fields(Telemetry)] + [
+        field.type
+        for command in typing.get_args(Command)
+        for field in dataclasses.fields(command)
+    ]
+    _enum_lines = [
+        f"`{annotation.__name__}` is one of "
+        + ", ".join(f"`{member.name}`" for member in annotation)
+        + "."
+        for annotation in dict.fromkeys(_types)
+        if issubclass(annotation, enum.Enum)
+    ]
+    _figure = mo.image(
+        importlib.resources.files("spacecraft_ops_challenge")
+        / "figures"
+        / "spacecraft-geometry.svg",
+        alt="Two thrusters offset from the center of mass "
+        "and a single-axis reaction wheel",
+        width=480,
+        style={"min-width": "0"},
+    )
     mo.vstack(
         [
             mo.md("## Spacecraft"),
             mo.vstack(
                 [
-                    mo.md(_table(("Telemetry field", "Type", "Unit"), _telemetry_rows)),
+                    mo.hstack(
+                        [
+                            mo.md(
+                                _table(
+                                    ("Telemetry field", "Type", "Unit"), _telemetry_rows
+                                )
+                            ).style(min_width="max-content"),
+                            _figure,
+                        ],
+                        justify="start",
+                        align="center",
+                        gap=2,
+                    ),
                     mo.md(_table(("Command", "Arguments", "Effect"), _command_rows)),
                 ],
                 gap=1.5,
             ),
+            mo.md("\n\n".join(_enum_lines)),
             mo.md(
                 f"Details: [Spacecraft Model]({CORE_DOCS_URL}/spacecraft-model.md), "
                 f"[Commands and Timeline]({CORE_DOCS_URL}/timeline.md)"

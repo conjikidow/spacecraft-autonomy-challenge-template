@@ -61,13 +61,13 @@ uv add numpy
 API とチャレンジについては，core リポジトリのドキュメントを参照してください。
 リンク先は，このテンプレートが使用している core のバージョンのドキュメントです。
 
-- [戦略の書き方](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
-- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/timeline.ja.md)：コマンドの種類と順序規則
-- [宇宙機モデル](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
-- [シミュレーション](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/simulation.ja.md)：イベントの順序と終了条件
-- [チャレンジ問題](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
-- [評価](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
-- [コマンドラインツール](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/README.ja.md#コマンドラインツール)：オプションと終了ステータス
+- [戦略の書き方](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
+- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/timeline.ja.md)：コマンドの種類と順序規則
+- [宇宙機モデル](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
+- [シミュレーション](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/simulation.ja.md)：イベントの順序と終了条件
+- [チャレンジ問題](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
+- [評価](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
+- [コマンドラインツール](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/README.ja.md#コマンドラインツール)：オプションと終了ステータス
 
 ## ライセンス
 

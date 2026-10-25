@@ -60,13 +60,13 @@ uv add numpy
 
 The core repository documents the API and the challenge, at the commit this template uses:
 
-- [Writing a Strategy](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/strategy.md): lifecycle, mission brief, and commander
-- [Commands and Timeline](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/timeline.md): command types and ordering rules
-- [Spacecraft Model](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/spacecraft-model.md): state, dynamics, and telemetry
-- [Simulation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/simulation.md): order of events and termination
-- [Challenge Problem](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/challenge.md): the problem and its public scenarios
-- [Evaluation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/docs/evaluation.md): the metrics printed after a run
-- [Command-Line Runner](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.1/README.md#command-line-runner): options and exit status
+- [Writing a Strategy](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/strategy.md): lifecycle, mission brief, and commander
+- [Commands and Timeline](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/timeline.md): command types and ordering rules
+- [Spacecraft Model](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/spacecraft-model.md): state, dynamics, and telemetry
+- [Simulation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/simulation.md): order of events and termination
+- [Challenge Problem](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/challenge.md): the problem and its public scenarios
+- [Evaluation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/evaluation.md): the metrics printed after a run
+- [Command-Line Runner](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/README.md#command-line-runner): options and exit status
 
 ## License
 
