@@ -3,7 +3,7 @@ import marimo
 __generated_with = "0.25.2"
 app = marimo.App(width="medium")
 
-with app.setup:
+with app.setup(hide_code=True):
     import contextlib
     import dataclasses
     import importlib
@@ -50,7 +50,6 @@ def _():
     3. Inspect the result and iterate.
     4. Prepare and download `submission.zip` when you need the bundle.
     """)
-    return
 
 
 @app.cell(hide_code=True)
@@ -99,7 +98,6 @@ def _():
             ),
         ]
     )
-    return
 
 
 @app.cell(hide_code=True)
@@ -123,10 +121,9 @@ def _(run_button, scenario_picker):
             mo.md(scenario(scenario_picker.value).description),
         ]
     )
-    return
 
 
-@app.function
+@app.function(hide_code=True)
 def forget_submission_modules():
     """Remove imported modules whose files are under `submission/`.
 
@@ -144,7 +141,7 @@ def forget_submission_modules():
             del sys.modules[name]
 
 
-@app.class_definition
+@app.class_definition(hide_code=True)
 class SourceOnlyLoader(importlib.machinery.SourceFileLoader):
     """Loader that compiles from source and never reads or writes bytecode caches.
 
@@ -156,7 +153,7 @@ class SourceOnlyLoader(importlib.machinery.SourceFileLoader):
         return compile(self.get_data(self.path), self.path, "exec", dont_inherit=True)
 
 
-@app.class_definition
+@app.class_definition(hide_code=True)
 class SubmissionFinder(importlib.abc.MetaPathFinder):
     """Import hook that loads source files under `submission/` from source only."""
 
@@ -172,7 +169,7 @@ class SubmissionFinder(importlib.abc.MetaPathFinder):
         return spec
 
 
-@app.function
+@app.function(hide_code=True)
 def load_strategy():
     """Instantiate `MyStrategy` from the current files under `submission/`.
 
@@ -331,10 +328,9 @@ def _(load_error, result, strategy_output):
         )
     )
     mo.vstack(_sections)
-    return
 
 
-@app.function
+@app.function(hide_code=True)
 def build_submission_zip():
     """Zip the current `submission/` directory, keeping it as the top-level folder.
 
@@ -420,7 +416,6 @@ def _(prepare_button):
                 )
             )
     mo.vstack(_sections)
-    return
 
 
 if __name__ == "__main__":
