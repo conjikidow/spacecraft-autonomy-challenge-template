@@ -22,6 +22,9 @@ lint = [
 required-version = "==0.17.1"
 line-length = 88
 
+[tool.ruff.lint]
+extend-select = ["E501"]
+
 [tool.ruff.lint.per-file-ignores]
 # marimo writes a bare `return` at the end of every cell
 "app.py" = ["PLR1711"]
