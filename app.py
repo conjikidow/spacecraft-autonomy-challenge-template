@@ -6,20 +6,24 @@ app = marimo.App(width="full", layout_file="layouts/app.grid.json")
 with app.setup(hide_code=True):
     import contextlib
     import dataclasses
+    import enum
     import importlib
     import importlib.abc
     import importlib.machinery
     import importlib.util
+    import inspect
     import io
     import os
     import sys
     import traceback
+    import typing
     import zipfile
     from pathlib import Path
 
     import marimo as mo
-    from spacecraft_ops_challenge import Strategy
+    from spacecraft_ops_challenge import Commander, Strategy, Telemetry, __version__
     from spacecraft_ops_challenge.challenge import problem, scenario, scenario_names
+    from spacecraft_ops_challenge.commands import Command
     from spacecraft_ops_challenge.evaluation import evaluate
     from spacecraft_ops_challenge.results import TerminationReason
     from spacecraft_ops_challenge.simulation import run
@@ -28,6 +32,10 @@ with app.setup(hide_code=True):
     SUBMISSION_DIR = (REPOSITORY_DIR / "submission").resolve()
     STRATEGY_FILE = SUBMISSION_DIR / "strategy.py"
     STRATEGY_CLASS = "MyStrategy"
+    CORE_DOCS_URL = (
+        "https://github.com/conjikidow/spacecraft-operations-challenge-core"
+        f"/blob/v{__version__}/docs"
+    )
 
     class SubmissionLoadError(Exception):
         """Raised when the participant's strategy cannot be imported or instantiated."""
@@ -51,6 +59,53 @@ def _():
     3. Inspect the result and iterate.
     4. Prepare and download `submission.zip` when you need the bundle.
     """)
+
+
+@app.cell(hide_code=True)
+def _():
+    def _doc(obj):
+        return " ".join(inspect.getdoc(obj).split())
+
+    def _type(annotation):
+        if issubclass(annotation, enum.Enum):
+            members = ", ".join(f"`{member.name}`" for member in annotation)
+            return f"`{annotation.__name__}` ({members})"
+        return f"`{annotation.__name__}`"
+
+    def _arguments(command):
+        fields = dataclasses.fields(command)
+        return ", ".join(f"`{field.name}`: {_type(field.type)}" for field in fields)
+
+    def _table(headers, rows):
+        return "\n".join(
+            [f"| {' | '.join(headers)} |", "|:---" * len(headers) + "|", *rows]
+        )
+
+    _telemetry_rows = [
+        f"| `{field.name}` | {_type(field.type)} |"
+        for field in dataclasses.fields(Telemetry)
+    ]
+    _command_rows = [
+        f"| `{command.__name__}` | {_arguments(command) or '-'} | {_doc(command)} |"
+        for command in typing.get_args(Command)
+    ]
+    mo.vstack(
+        [
+            mo.md("## Spacecraft"),
+            mo.md("Units are part of every field name."),
+            mo.vstack(
+                [
+                    mo.md(_table(("Telemetry field", "Type"), _telemetry_rows)),
+                    mo.md(_table(("Command", "Arguments", "Effect"), _command_rows)),
+                ],
+                gap=1.5,
+            ),
+            mo.md(
+                f"Details: [Spacecraft Model]({CORE_DOCS_URL}/spacecraft-model.md), "
+                f"[Commands and Timeline]({CORE_DOCS_URL}/timeline.md)"
+            ),
+        ]
+    )
 
 
 @app.cell(hide_code=True)
@@ -100,6 +155,61 @@ def _():
                     )
                 }
             ),
+        ]
+    )
+
+
+@app.cell(hide_code=True)
+def _():
+    def _doc(obj):
+        return " ".join(inspect.getdoc(obj).split())
+
+    def _call(function):
+        parameters = list(inspect.signature(function).parameters)[1:]
+        return f"{function.__name__}({', '.join(parameters)})"
+
+    def _table(headers, rows):
+        return "\n".join(
+            [f"| {' | '.join(headers)} |", "|:---" * len(headers) + "|", *rows]
+        )
+
+    _contents = {
+        "brief": "Values under **Mission**, e.g. `brief.decision_period_s`",
+        "telemetry": (
+            "Fields under **Spacecraft** at the callback time, "
+            "e.g. `telemetry.battery_energy_wh`; may differ from the true state"
+        ),
+        "commander": (
+            "Members below, e.g. `commander.schedule(600.0, SetHeater(on=True))`"
+        ),
+    }
+    _callback_rows = [
+        f"| `{_call(callback)}` | {_doc(callback)} |"
+        for callback in (Strategy.initialize, Strategy.update)
+    ]
+    _argument_rows = [
+        f"| `{name}` | `{parameter.annotation.__name__}` | {_contents.get(name, '')} |"
+        for name, parameter in inspect.signature(Strategy.initialize).parameters.items()
+        if name != "self"
+    ]
+    _commander_rows = [
+        f"| `{name if isinstance(member, property) else _call(member)}` "
+        f"| {_doc(member)} |"
+        for name, member in vars(Commander).items()
+        if not name.startswith("_")
+    ]
+    mo.vstack(
+        [
+            mo.md("## Strategy API"),
+            mo.vstack(
+                [
+                    mo.md(_table(("Callback", "When"), _callback_rows)),
+                    mo.md(_table(("Argument", "Type", "Content"), _argument_rows)),
+                    mo.md(_table(("Commander member", "Behavior"), _commander_rows)),
+                ],
+                gap=1.5,
+            ),
+            mo.md(f"Details: [Writing a Strategy]({CORE_DOCS_URL}/strategy.md)"),
         ]
     )
 
