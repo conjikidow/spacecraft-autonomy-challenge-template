@@ -33,4 +33,4 @@ extend-select = ["E501"]
 exclude-newer = "3 days"
 
 [tool.uv.sources]
-spacecraft-operations-challenge-core = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core", tag = "v0.1.0" }
+spacecraft-operations-challenge-core = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core", tag = "v0.1.1" }
