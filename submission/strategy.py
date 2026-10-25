@@ -5,7 +5,23 @@ Run it with:
     uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy
 """
 
-from spacecraft_ops_challenge import Commander, MissionBrief, Strategy, Telemetry
+# Every strategy-facing name, imported up front so that unused ones are not removed.
+from spacecraft_ops_challenge import (  # noqa: F401
+    Commander,
+    CommandError,
+    CommandId,
+    DeclareCompletion,
+    MissionBrief,
+    PropulsionMode,
+    SafetyLimits,
+    ScheduledCommand,
+    SetHeater,
+    SetPropulsionMode,
+    SpacecraftParameters,
+    Strategy,
+    Telemetry,
+    ThrusterParameters,
+)
 
 
 class MyStrategy(Strategy):
