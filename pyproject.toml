@@ -6,13 +6,28 @@ requires-python = ">=3.12"
 license = "MIT-0"
 license-files = ["LICENSE"]
 dependencies = [
-    "spacecraft-operations-challenge-core",
+  "spacecraft-operations-challenge-core",
 ]
-
-[tool.uv.sources]
-spacecraft-operations-challenge-core = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core", tag = "v0.1.0" }
 
 [dependency-groups]
 dev = [
-    "marimo>=0.25.2",
+  "marimo>=0.25.2",
+  { include-group = "lint" },
 ]
+lint = [
+  "ruff==0.17.1",
+]
+
+[tool.ruff]
+required-version = "==0.17.1"
+line-length = 88
+
+[tool.ruff.lint.per-file-ignores]
+# marimo writes a bare `return` at the end of every cell
+"app.py" = ["PLR1711"]
+
+[tool.uv]
+exclude-newer = "3 days"
+
+[tool.uv.sources]
+spacecraft-operations-challenge-core = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core", tag = "v0.1.0" }
