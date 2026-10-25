@@ -45,13 +45,12 @@ def _():
 
     1. Edit `submission/strategy.py` in the **Strategy** editor below.
        Add or edit any other file under `submission/` from the Files panel.
-    2. Select a public scenario and click **Run public scenario**.
+    2. Select a public scenario and click **Run**.
        Every run loads the current files from disk,
        so there is no need to restart this notebook.
     3. Inspect the result and iterate.
     4. Prepare and download `submission.zip` when you need the bundle.
     """)
-    return
 
 
 @app.cell(hide_code=True)
@@ -81,15 +80,18 @@ def _():
                 "The public problem shared by all scenarios. "
                 "Units are part of every field name."
             ),
-            mo.hstack(
-                [
-                    mo.md(_table("Goal and timing", _goal_rows)),
-                    mo.md(_table("Safety limits", _value_rows(_problem.limits))),
-                    mo.md(_table("Initial state", _value_rows(_problem.initial_state))),
-                ],
-                widths="equal",
-                align="start",
-                gap=2,
+            mo.md(
+                _table(
+                    "Field",
+                    [
+                        "| **Goal and timing** | |",
+                        *_goal_rows,
+                        "| **Safety limits** | |",
+                        *_value_rows(_problem.limits),
+                        "| **Initial state** | |",
+                        *_value_rows(_problem.initial_state),
+                    ],
+                )
             ),
             mo.accordion(
                 {
@@ -100,7 +102,6 @@ def _():
             ),
         ]
     )
-    return
 
 
 @app.cell(hide_code=True)
@@ -118,10 +119,9 @@ def _():
 @app.cell(hide_code=True)
 def _(strategy_editor):
     _sections = [
+        mo.md("## Strategy"),
         mo.md(
             """
-            ## Strategy
-
             The contents of `submission/strategy.py`.
             Changes are saved to disk when the editor loses focus.
             If you change this file outside this editor,
@@ -141,7 +141,6 @@ def _(strategy_editor):
             )
         )
     mo.vstack(_sections)
-    return
 
 
 @app.cell(hide_code=True)
@@ -152,7 +151,7 @@ def _():
         value="nominal" if "nominal" in _names else _names[0],
         label="Scenario",
     )
-    run_button = mo.ui.run_button(label="Run public scenario", kind="success")
+    run_button = mo.ui.run_button(label="Run", kind="success")
     return run_button, scenario_picker
 
 
@@ -165,7 +164,6 @@ def _(run_button, scenario_picker):
             mo.md(scenario(scenario_picker.value).description),
         ]
     )
-    return
 
 
 @app.function(hide_code=True)
@@ -259,7 +257,7 @@ def load_strategy():
 def _(run_button, scenario_picker):
     mo.stop(
         not run_button.value,
-        mo.md("Select a scenario and click **Run public scenario** to see the result."),
+        mo.md("Select a scenario and click **Run** to see the result."),
     )
     _output = io.StringIO()
     load_error = ""
@@ -373,7 +371,6 @@ def _(load_error, result, strategy_output):
         )
     )
     mo.vstack(_sections)
-    return
 
 
 @app.function(hide_code=True)
@@ -421,12 +418,10 @@ def _():
 @app.cell(hide_code=True)
 def _(prepare_button):
     _sections = [
+        mo.md("## Prepare submission"),
         mo.md(
             """
-            ## Prepare submission
-
-            Pack the whole `submission/` directory as it is on disk now,
-            without Python bytecode caches.
+            Pack the `submission/` directory as it is now.
             Prepare it again after you change any file.
             """
         ),
@@ -462,7 +457,6 @@ def _(prepare_button):
                 )
             )
     mo.vstack(_sections)
-    return
 
 
 if __name__ == "__main__":
