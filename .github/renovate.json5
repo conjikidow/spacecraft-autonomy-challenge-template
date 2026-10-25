@@ -1,0 +1,39 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  labels: [
+    'automated',
+    'dependencies',
+  ],
+  customManagers: [
+    {
+      customType: 'regex',
+      description: 'Keep the README links to the core documentation on the pinned core tag',
+      managerFilePatterns: [
+        '/^README\\.md$/',
+      ],
+      matchStrings: [
+        'https://github\\.com/conjikidow/spacecraft-operations-challenge-core/blob/(?<currentValue>v\\d+\\.\\d+\\.\\d+)/',
+      ],
+      depNameTemplate: 'spacecraft-operations-challenge-core',
+      packageNameTemplate: 'conjikidow/spacecraft-operations-challenge-core',
+      datasourceTemplate: 'github-tags',
+    },
+  ],
+  packageRules: [
+    {
+      description: 'Track only the core package, as the other dependencies are left to the participants',
+      matchPackageNames: [
+        '!conjikidow/spacecraft-operations-challenge-core',
+      ],
+      enabled: false,
+    },
+    {
+      description: 'Update the core pin in pyproject.toml and uv.lock together with the README links in one pull request, going straight to the latest tag',
+      matchPackageNames: [
+        'conjikidow/spacecraft-operations-challenge-core',
+      ],
+      groupName: 'spacecraft-operations-challenge-core',
+      separateMajorMinor: false,
+    },
+  ],
+}
