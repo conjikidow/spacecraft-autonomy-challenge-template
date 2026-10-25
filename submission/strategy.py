@@ -5,7 +5,6 @@ Run it with:
     uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy
 """
 
-# Every strategy-facing name, imported up front so that unused ones are not removed.
 from spacecraft_ops_challenge import (  # noqa: F401
     Commander,
     CommandError,
