@@ -1,9 +1,4 @@
-"""Your strategy for the Spacecraft Operations Challenge.
-
-Run it with:
-
-    uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy
-"""
+"""Your strategy for the Spacecraft Operations Challenge."""
 
 from spacecraft_ops_challenge import (  # noqa: F401
     Commander,
