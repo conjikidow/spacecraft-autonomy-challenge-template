@@ -10,6 +10,7 @@ with app.setup(hide_code=True):
     import importlib
     import importlib.abc
     import importlib.machinery
+    import importlib.resources
     import importlib.util
     import inspect
     import io
@@ -109,12 +110,32 @@ def _():
         f"| `{command.__name__}` | {_arguments(command) or '-'} | {_doc(command)} |"
         for command in typing.get_args(Command)
     ]
+    _figure = mo.image(
+        importlib.resources.files("spacecraft_ops_challenge")
+        / "figures"
+        / "spacecraft-geometry.svg",
+        alt="Two thrusters offset from the center of mass "
+        "and a single-axis reaction wheel",
+        width=360,
+    )
     mo.vstack(
         [
             mo.md("## Spacecraft"),
             mo.vstack(
                 [
-                    mo.md(_table(("Telemetry field", "Type", "Unit"), _telemetry_rows)),
+                    mo.hstack(
+                        [
+                            mo.md(
+                                _table(
+                                    ("Telemetry field", "Type", "Unit"), _telemetry_rows
+                                )
+                            ),
+                            _figure,
+                        ],
+                        justify="start",
+                        align="center",
+                        gap=2,
+                    ),
                     mo.md(_table(("Command", "Arguments", "Effect"), _command_rows)),
                 ],
                 gap=1.5,
