@@ -139,12 +139,12 @@ def _():
                 _table(
                     "Field",
                     [
+                        "| **Initial state** | |",
+                        *_value_rows(_problem.initial_state),
                         "| **Goal and timing** | |",
                         *_goal_rows,
                         "| **Safety limits** | |",
                         *_value_rows(_problem.limits),
-                        "| **Initial state** | |",
-                        *_value_rows(_problem.initial_state),
                     ],
                 )
             ),
