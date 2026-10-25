@@ -507,7 +507,7 @@ wheels = [
 [[package]]
 name = "spacecraft-operations-challenge-core"
 version = "0.1.0"
-source = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?rev=f413131d8aa46a8cdafbffd1b4a4cd65d80ae887#f413131d8aa46a8cdafbffd1b4a4cd65d80ae887" }
+source = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?tag=v0.1.0#48e8afe4bf80af4b9a5120c2bf861b4241af408f" }
 
 [[package]]
 name = "spacecraft-operations-challenge-submission"
@@ -523,7 +523,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "spacecraft-operations-challenge-core", git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?rev=f413131d8aa46a8cdafbffd1b4a4cd65d80ae887" }]
+requires-dist = [{ name = "spacecraft-operations-challenge-core", git = "https://github.com/conjikidow/spacecraft-operations-challenge-core?tag=v0.1.0" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "marimo", specifier = ">=0.25.2" }]

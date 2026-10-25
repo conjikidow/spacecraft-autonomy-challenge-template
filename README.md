@@ -5,7 +5,7 @@
 Start here to write a strategy for the Spacecraft Operations Challenge.
 A strategy operates a simulated spacecraft: it reads telemetry and schedules commands so that the spacecraft accumulates a target delta-v without violating its limits.
 
-The challenge problem, the simulator, and the `spacecraft-ops-challenge` command come from the [`spacecraft-operations-challenge-core`](https://github.com/conjikidow/spacecraft-operations-challenge-core) package, pinned to a specific commit in `pyproject.toml`.
+The challenge problem, the simulator, and the `spacecraft-ops-challenge` command come from the [`spacecraft-operations-challenge-core`](https://github.com/conjikidow/spacecraft-operations-challenge-core) package, pinned to a release tag in `pyproject.toml`.
 
 ## Requirements
 
@@ -54,13 +54,13 @@ uv add numpy
 
 The core repository documents the API and the challenge, at the commit this template uses:
 
-- [Writing a Strategy](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/f413131d8aa46a8cdafbffd1b4a4cd65d80ae887/docs/strategy.md): lifecycle, mission brief, and commander
-- [Commands and Timeline](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/f413131d8aa46a8cdafbffd1b4a4cd65d80ae887/docs/timeline.md): command types and ordering rules
-- [Spacecraft Model](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/f413131d8aa46a8cdafbffd1b4a4cd65d80ae887/docs/spacecraft-model.md): state, dynamics, and telemetry
-- [Simulation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/f413131d8aa46a8cdafbffd1b4a4cd65d80ae887/docs/simulation.md): order of events and termination
-- [Challenge Problem](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/f413131d8aa46a8cdafbffd1b4a4cd65d80ae887/docs/challenge.md): the problem and its public scenarios
-- [Evaluation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/f413131d8aa46a8cdafbffd1b4a4cd65d80ae887/docs/evaluation.md): the metrics printed after a run
-- [Command-Line Runner](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/f413131d8aa46a8cdafbffd1b4a4cd65d80ae887/README.md#command-line-runner): options and exit status
+- [Writing a Strategy](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.0/docs/strategy.md): lifecycle, mission brief, and commander
+- [Commands and Timeline](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.0/docs/timeline.md): command types and ordering rules
+- [Spacecraft Model](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.0/docs/spacecraft-model.md): state, dynamics, and telemetry
+- [Simulation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.0/docs/simulation.md): order of events and termination
+- [Challenge Problem](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.0/docs/challenge.md): the problem and its public scenarios
+- [Evaluation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.0/docs/evaluation.md): the metrics printed after a run
+- [Command-Line Runner](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.0/README.md#command-line-runner): options and exit status
 
 ## License
 
