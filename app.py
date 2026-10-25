@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.25.2"
-app = marimo.App(width="medium")
+app = marimo.App(width="full", layout_file="layouts/app.grid.json")
 
 with app.setup(hide_code=True):
     import contextlib
