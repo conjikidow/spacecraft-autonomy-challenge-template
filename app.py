@@ -7,6 +7,7 @@ with app.setup(hide_code=True):
     import contextlib
     import dataclasses
     import enum
+    import hashlib
     import importlib
     import importlib.abc
     import importlib.machinery
@@ -21,7 +22,9 @@ with app.setup(hide_code=True):
     import zipfile
     from pathlib import Path
 
+    import anywidget
     import marimo as mo
+    import traitlets
     from spacecraft_ops_challenge import Commander, Strategy, Telemetry, __version__
     from spacecraft_ops_challenge.challenge import problem, scenario, scenario_names
     from spacecraft_ops_challenge.commands import Command
@@ -37,6 +40,8 @@ with app.setup(hide_code=True):
         "https://github.com/conjikidow/spacecraft-operations-challenge-core"
         f"/blob/v{__version__}/docs"
     )
+    PRACTICE_APP_URL = "https://molab.marimo.io/notebooks/nb_siSWksaqMjVxazAVfjNvYq/app"
+    PRACTICE_MAX_BYTES = 100_000_000
 
     FIELD_UNITS = {
         "_nms_per_s": "Nms/s",
@@ -78,7 +83,8 @@ def _():
        Every run loads the current files from disk,
        so there is no need to restart this notebook.
     3. Inspect the result and iterate.
-    4. Prepare and download `submission.zip` when you need the bundle.
+    4. Send the submission to the **Practice evaluation** to run it on hidden cases.
+    5. Prepare and download `submission.zip` for the final submission.
     """)
 
 
@@ -626,6 +632,184 @@ def _(prepare_button):
                 )
             )
     mo.vstack(_sections)
+
+
+@app.class_definition(hide_code=True)
+class PracticeBridge(anywidget.AnyWidget):
+    """Opens the practice app in a new tab and posts the packed submission to it.
+
+    The button opens the tab, or focuses it if it is still open, and sends a `pack`
+    message with a new request number; Python answers with a `packed` message that
+    carries the archive as a buffer. The practice app announces when it is ready to
+    receive, and the archive is sent again whenever it announces itself, for example
+    after a reload. The practice app confirms each archive it accepts.
+    """
+
+    _esm = """
+    const PROTOCOL = "spacecraft-ops-challenge-practice";
+    const VERSION = 1;
+    const TAB_NAME = "spacecraft-ops-challenge-practice";
+
+    function render({ model, el }) {
+      const button = document.createElement("button");
+      button.className = "practice-bridge-button";
+      button.textContent = "Open practice evaluation";
+      const status = document.createElement("p");
+      el.append(button, status);
+      let tab = null;
+      let practice = null;
+      let pending = null;
+      let packed = null;
+      function send() {
+        if (packed === null || !packed.archive?.byteLength) {
+          return;
+        }
+        if (practice === null) {
+          status.textContent =
+            `${packed.message} Waiting for the practice app to load. ` +
+            "If it does not receive the submission, upload submission.zip there.";
+          return;
+        }
+        const archive = packed.archive;
+        const start = archive.byteOffset;
+        const data = archive.buffer.slice(start, start + archive.byteLength);
+        const message = {
+          protocol: PROTOCOL,
+          version: VERSION,
+          type: "submission",
+          request: pending,
+          archive: data,
+        };
+        practice.source.postMessage(message, practice.origin, [data]);
+        status.textContent =
+          `${packed.message} Sending to the practice app. ` +
+          "If it does not receive the submission, upload submission.zip there.";
+      }
+      function onPacked(content, buffers) {
+        if (content?.type !== "packed" || content.request !== pending) {
+          return;
+        }
+        packed = { message: content.message, archive: buffers[0] ?? null };
+        status.textContent = packed.message;
+        send();
+      }
+      function onMessage(event) {
+        const message = event.data;
+        if (
+          tab === null ||
+          event.source?.top !== tab ||
+          event.origin === "null" ||
+          message?.protocol !== PROTOCOL ||
+          message.version !== VERSION
+        ) {
+          return;
+        }
+        if (message.type === "ready") {
+          practice = { source: event.source, origin: event.origin };
+          send();
+        } else if (
+          message.type === "received" &&
+          event.source === practice?.source &&
+          packed !== null &&
+          message.request === pending
+        ) {
+          status.textContent =
+            `${packed.message} Received by the practice app: click Run there.`;
+        }
+      }
+      button.addEventListener("click", () => {
+        if (tab === null || tab.closed) {
+          tab = window.open(model.get("url"), TAB_NAME);
+          practice = null;
+        }
+        if (tab === null) {
+          status.textContent =
+            "The browser blocked the new tab. Allow pop-ups for this page.";
+          return;
+        }
+        tab.focus();
+        pending = Date.now();
+        packed = null;
+        status.textContent = "Packing submission/.";
+        model.send({ type: "pack", request: pending });
+      });
+      window.addEventListener("message", onMessage);
+      model.on("msg:custom", onPacked);
+      return () => {
+        window.removeEventListener("message", onMessage);
+        model.off("msg:custom", onPacked);
+      };
+    }
+
+    export default { render };
+    """
+    _css = """
+    .practice-bridge-button {
+      padding: 0.25rem 0.75rem;
+      border: 1px solid #15803d;
+      border-radius: 0.375rem;
+      background: #16a34a;
+      color: white;
+      font: inherit;
+      cursor: pointer;
+    }
+    .practice-bridge-button:hover {
+      background: #15803d;
+    }
+    """
+    url = traitlets.Unicode().tag(sync=True)
+
+
+@app.cell(hide_code=True)
+def _():
+    def _pack(widget, content, buffers):
+        if content.get("type") != "pack":
+            return
+        data = b""
+        try:
+            archive = build_submission_zip()
+        except (ValueError, OSError) as error:
+            message = f"Could not pack submission.zip: {error}"
+        else:
+            if len(archive) > PRACTICE_MAX_BYTES:
+                message = (
+                    f"submission.zip is {len(archive):,} bytes, more than the "
+                    f"{PRACTICE_MAX_BYTES:,} bytes that the practice app accepts."
+                )
+            else:
+                data = archive
+                message = (
+                    f"Packed submission.zip: {len(data):,} bytes, "
+                    f"SHA-256 {hashlib.sha256(data).hexdigest()[:12]}."
+                )
+        widget.send(
+            {"type": "packed", "request": content.get("request"), "message": message},
+            buffers=[data] if data else None,
+        )
+
+    _bridge = PracticeBridge(url=PRACTICE_APP_URL)
+    _bridge.on_msg(_pack)
+    # Displayed by the cell that creates it, which never runs again, so that the
+    # widget keeps its reference to the practice tab.
+    mo.vstack(
+        [
+            mo.md("## Practice evaluation"),
+            mo.md(
+                f"""
+                Evaluate the `submission/` directory as it is now on hidden practice
+                cases. The button opens the practice app in a new tab and sends the
+                submission to it; click **Run** there.
+                Click the button again after you change any file:
+                the submission is sent to the same tab while it is open.
+                If no tab opens, allow pop-ups for this page,
+                or open the [practice app]({PRACTICE_APP_URL}) yourself
+                and upload `submission.zip` from **Prepare submission**.
+                """
+            ),
+            mo.ui.anywidget(_bridge),
+        ]
+    )
+    return
 
 
 if __name__ == "__main__":

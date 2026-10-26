@@ -11,6 +11,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "anywidget>=0.11.0",
   "marimo>=0.25.2",
   { include-group = "lint" },
 ]
