@@ -20,7 +20,8 @@ The server speaks a small HTTP protocol, relative to its base URL:
     GET  submissions/{id}
         the receipt with its current status; a completed practice submission also
         carries the result document of `autonomy-challenge check --json`
-        under "result"
+        under "result" and, if the server has fixed practice cases, the score on
+        them alone, by which the practice leaderboard ranks, under "fixed_score"
     GET  board/practice?limit=...&participant_id=...
         the practice leaderboard, if the server has one: "total" and "rows" of
         rank, name, score, submitted_at, submission, and count
@@ -435,6 +436,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     print()
     print(format_check_report(str(receipt.get("id")), result))
+    fixed = score_text(document.get("fixed_score"))
+    if fixed:
+        print(f"\nFixed cases: {fixed} (the leaderboard ranks by this score)")
     return 1 if problem_outcomes(result.outcomes) else 0
 
 

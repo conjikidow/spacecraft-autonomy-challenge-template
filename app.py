@@ -774,9 +774,25 @@ def _(final_button, practice_button, server_form):
             if _document.get("status") == "failed":
                 _sections.append(mo.md(f"**Not evaluated:** {_document.get('error')}"))
             elif _document.get("result") is not None:
+                _fixed = score_text(_document.get("fixed_score"))
+                _stats = (
+                    [
+                        mo.stat(
+                            _fixed,
+                            label="Fixed cases",
+                            caption="The leaderboard ranks by this score.",
+                            bordered=True,
+                        )
+                    ]
+                    if _fixed
+                    else []
+                )
                 try:
                     _sections.append(
-                        results_view(EvaluationResult.from_dict(_document["result"]))
+                        results_view(
+                            EvaluationResult.from_dict(_document["result"]),
+                            stats=_stats,
+                        )
                     )
                 except ResultFormatError as error:
                     _sections.append(
