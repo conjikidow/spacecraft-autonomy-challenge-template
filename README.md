@@ -95,7 +95,9 @@ On Windows, or instead of the environment variables, pass `--server <URL>` and `
 If you stop waiting for a practice evaluation, it continues on the server; `uv run submit.py --status <id>` shows it later.
 You are identified by `git config user.email` and `git config user.name`;
 `--participant-id` and `--participant-name` override them, and `uv run submit.py --help` lists all options.
-The **Evaluation server** section of the notebook does the same.
+In the notebook, enter the server settings under **Evaluation server** and submit from the **Submit** section.
+The notebook pre-fills the URL and the token from `EVALUATION_SERVER_URL` and `EVALUATION_SERVER_TOKEN`,
+and your email and name from `git config`.
 
 If the server has a leaderboard, `uv run submit.py --board` shows it,
 with whether final submissions are open and the time left, and the final ranking once it is published;

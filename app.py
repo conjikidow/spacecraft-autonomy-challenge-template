@@ -117,11 +117,8 @@ def _():
        Every run loads the current files from disk,
        so there is no need to restart this notebook.
     3. Inspect the result and iterate.
-    4. Click **Check** to evaluate `submission.zip` on all public scenarios,
-       the way an evaluation server runs it.
-    5. If your event provides an evaluation server, submit for a practice evaluation
-       on hidden cases under **Evaluation server**, and submit your final version
-       there as well.
+    4. Click **Check** to test on all public scenarios.
+    5. If your event has an evaluation server, **Submit** and watch the **Leaderboard**.
     """)
 
 
@@ -327,11 +324,8 @@ def _(strategy_editor):
         mo.md("## Strategy"),
         mo.md(
             """
-            The contents of `submission/strategy.py`.
-            Changes are saved to disk when the editor loses focus.
-            If you change this file outside this editor,
-            reload the notebook before editing it here,
-            or the editor will overwrite that change.
+            Saved to `submission/strategy.py` when the editor loses focus.
+            After editing the file elsewhere, reload this notebook first.
             """
         ),
         strategy_editor,
@@ -587,21 +581,15 @@ def _(load_error, result, strategy_output):
 
 @app.cell(hide_code=True)
 def _():
-    prepare_button = mo.ui.run_button(label="Prepare submission.zip")
+    prepare_button = mo.ui.run_button(label="Pack")
     return (prepare_button,)
 
 
 @app.cell(hide_code=True)
 def _(prepare_button):
     _sections = [
-        mo.md("## Prepare submission"),
-        mo.md(
-            """
-            Pack the `submission/` directory and `pyproject.toml` as they are now,
-            as `uv run autonomy-challenge pack` does.
-            Prepare it again after you change any file.
-            """
-        ),
+        mo.md("## Pack"),
+        mo.md("Build `submission.zip` for download."),
         prepare_button,
     ]
     if prepare_button.value:
@@ -609,9 +597,7 @@ def _(prepare_button):
             _data = build_submission(REPOSITORY_DIR)
         except (SubmissionError, OSError) as error:
             _sections.append(
-                mo.callout(
-                    str(error), kind="danger", title="Could not prepare submission.zip"
-                )
+                mo.callout(str(error), kind="danger", title="Could not pack")
             )
         else:
             with zipfile.ZipFile(io.BytesIO(_data)) as _archive:
@@ -623,6 +609,9 @@ def _(prepare_button):
                     mimetype="application/zip",
                     label="Download submission.zip",
                 )
+            )
+            _sections.append(
+                mo.md("<small>Packed from the files at click time.</small>")
             )
             _sections.append(
                 mo.accordion(
@@ -638,7 +627,14 @@ def _(prepare_button):
 
 @app.cell(hide_code=True)
 def _():
-    check_button = mo.ui.run_button(label="Check", kind="success")
+    check_button = mo.ui.run_button(
+        label="Check",
+        kind="success",
+        tooltip=(
+            "Each scenario runs in a new process. "
+            "Missing packages are installed for this check only."
+        ),
+    )
     return (check_button,)
 
 
@@ -647,13 +643,8 @@ def _(check_button):
     _sections = [
         mo.md("## Check"),
         mo.md(
-            """
-            Evaluate `submission.zip`, packed from the files as they are now,
-            on all public scenarios, as `uv run autonomy-challenge check` does:
-            each scenario runs your strategy in a new Python process,
-            and the packages of `pyproject.toml` that are missing are installed
-            for this check only.
-            """
+            "Run your submission on all public scenarios, "
+            "as the evaluation server does."
         ),
         check_button,
     ]
@@ -700,36 +691,47 @@ def _():
             ),
             "participant_id": mo.ui.text(
                 value=git_config("user.email") or "",
-                label="Your id (git config user.email)",
+                label="Your email",
                 full_width=True,
             ),
             "participant_name": mo.ui.text(
                 value=git_config("user.name") or "",
-                label="Your name (git config user.name)",
+                label="Your name",
                 full_width=True,
             ),
         }
     )
-    practice_button = mo.ui.run_button(label="Submit for practice", kind="success")
-    final_button = mo.ui.run_button(label="Submit as final", kind="warn")
+    practice_button = mo.ui.run_button(
+        label="Submit for practice",
+        kind="success",
+        tooltip=(
+            "Packs the current files and runs them on hidden cases. "
+            "The result appears here."
+        ),
+    )
+    final_button = mo.ui.run_button(
+        label="Submit as final",
+        kind="warn",
+        tooltip=(
+            "Packs the current files and stores them as your final version. "
+            "You get a receipt."
+        ),
+    )
+    mo.vstack(
+        [
+            mo.md("## Evaluation server"),
+            mo.md("Needed only if your event has an evaluation server."),
+            server_form,
+        ]
+    )
     return final_button, practice_button, server_form
 
 
 @app.cell(hide_code=True)
 def _(final_button, practice_button, server_form):
     _sections = [
-        mo.md("## Evaluation server"),
-        mo.md(
-            f"""
-            If your event provides an evaluation server, submit `submission.zip`,
-            packed from the files as they are now, to it.
-            A **practice** submission runs on hidden cases and shows the result here.
-            A **final** submission is stored and answered with a receipt.
-            The server URL and token can also come from the environment variables
-            `{URL_VARIABLE}` and `{TOKEN_VARIABLE}`.
-            """
-        ),
-        server_form,
+        mo.md("## Submit"),
+        mo.md("Submit to your event's evaluation server."),
         mo.hstack([practice_button, final_button], justify="start", gap=1),
     ]
     if practice_button.value or final_button.value:
@@ -739,7 +741,7 @@ def _(final_button, practice_button, server_form):
             if not (
                 _form["participant_id"].strip() and _form["participant_name"].strip()
             ):
-                raise ServerError("enter your id and your name")
+                raise ServerError("enter your email and name")
             _server = EvaluationServer(_form["url"], _form["token"])
             _receipt = _server.submit(
                 build_submission(REPOSITORY_DIR),
@@ -787,7 +789,9 @@ def _(final_button, practice_button, server_form):
 
 @app.cell(hide_code=True)
 def _():
-    board_button = mo.ui.run_button(label="Show leaderboard")
+    board_button = mo.ui.run_button(
+        label="Load leaderboard", tooltip="Click again to refresh."
+    )
     mine_checkbox = mo.ui.checkbox(label="Only my practice submissions")
     return board_button, mine_checkbox
 
@@ -796,13 +800,6 @@ def _():
 def _(board_button, mine_checkbox, server_form):
     _sections = [
         mo.md("## Leaderboard"),
-        mo.md(
-            """
-            If the evaluation server has a leaderboard, show it, and whether final
-            submissions are open. It uses the server URL and token above.
-            Click again to update it, also after changing the options.
-            """
-        ),
         mo.hstack([board_button, mine_checkbox], justify="start", gap=1),
     ]
     if board_button.value:
@@ -811,7 +808,9 @@ def _(board_button, mine_checkbox, server_form):
             _server = EvaluationServer(_form["url"], _form["token"])
             _mine = _form["participant_id"].strip() if mine_checkbox.value else None
             if mine_checkbox.value and not _mine:
-                raise ServerError("enter your id above to see only your submissions")
+                raise ServerError(
+                    "enter your email to see only your practice submissions"
+                )
             _practice, _final = boards(_server, _mine)
         except ServerError as error:
             _sections.append(
@@ -819,13 +818,14 @@ def _(board_button, mine_checkbox, server_form):
             )
         else:
             _score = {"Score": score_text}
+            _content = []
             if _final is not None:
                 _status = final_status(_final)
                 if _status is not None:
-                    _sections.append(mo.callout(_status, kind="info"))
+                    _content.append(mo.callout(_status, kind="info"))
                 if _final.get("published"):
                     _final_rows = board_rows(_final, *FINAL_COLUMNS, formatted=False)
-                    _sections += [
+                    _content += [
                         mo.md("### Final ranking"),
                         mo.ui.table(_final_rows, selection=None, format_mapping=_score)
                         if _final_rows
@@ -839,16 +839,19 @@ def _(board_button, mine_checkbox, server_form):
                     if mine_checkbox.value
                     else "No evaluated practice submissions."
                 )
-                _sections += [
+                _content += [
                     mo.md(f"### Practice leaderboard ({len(_rows)} of {_total})"),
                     mo.ui.table(_rows, selection=None, format_mapping=_score)
                     if _rows
                     else mo.md(_empty),
                 ]
-            if len(_sections) == 3:
-                _sections.append(
+            if _practice is None and _final is None:
+                _content.append(
                     mo.md(f"No leaderboard at {_server.url}; check the server address.")
                 )
+            elif not _content:
+                _content.append(mo.md("Nothing to show yet."))
+            _sections += _content
     mo.vstack(_sections)
     return
 
