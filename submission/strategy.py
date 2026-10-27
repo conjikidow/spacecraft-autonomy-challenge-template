@@ -1,5 +1,7 @@
 """Your strategy for the Spacecraft Autonomy Challenge."""
 
+import pprint
+
 from spacecraft_autonomy_challenge import (  # noqa: F401
     Commander,
     CommandError,
@@ -26,8 +28,8 @@ class MyStrategy(Strategy):
 
         Schedule commands with `commander.schedule(time_s, command)`.
         """
-        print(brief)
-        print(telemetry)
+        pprint.pp(brief)
+        pprint.pp(telemetry)
 
     def update(self, telemetry: Telemetry, commander: Commander) -> None:
         """Called every `brief.decision_period_s` seconds with the latest telemetry."""
