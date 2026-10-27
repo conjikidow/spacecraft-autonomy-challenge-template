@@ -103,21 +103,23 @@ If the server has a leaderboard, `uv run submit.py --board` shows it,
 with whether final submissions are open and the time left, and the final ranking once it is published;
 `--mine` lists only your practice submissions.
 The **Leaderboard** section of the notebook shows the same.
+The practice leaderboard ranks by the score on the server's fixed practice cases alone, not on all cases of a practice evaluation;
+a practice result also shows this score, as **Fixed cases**, when the server reports it.
 
 ## Documentation
 
 The core repository documents the API and the challenge, at the commit this template uses:
 
-- [Writing a Strategy](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/strategy.md): lifecycle, mission brief, and commander
-- [Commands and Timeline](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/timeline.md): command types and ordering rules
-- [Spacecraft Model](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/spacecraft-model.md): state, dynamics, and telemetry
-- [Simulation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/simulation.md): order of events and termination
-- [Challenge Problem](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/challenge.md): the problem and its public scenarios
-- [Evaluation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/evaluation.md): the metrics printed after a run
-- [Command-Line Runner](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/README.md#command-line-runner): options and exit status of `run`, `pack`, and `check`
-- [Submission Archives](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/submission.md): what `submission.zip` contains
-- [Participant Packages](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/dependencies.md): how the packages of `pyproject.toml` are reproduced
-- [Scoring](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.2.0/docs/scoring.md): how a case and a suite are scored
+- [Writing a Strategy](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/strategy.md): lifecycle, mission brief, and commander
+- [Commands and Timeline](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/timeline.md): command types and ordering rules
+- [Spacecraft Model](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/spacecraft-model.md): state, dynamics, and telemetry
+- [Simulation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/simulation.md): order of events and termination
+- [Challenge Problem](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/challenge.md): the problem and its public scenarios
+- [Evaluation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/evaluation.md): the metrics printed after a run
+- [Command-Line Runner](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/README.md#command-line-runner): options and exit status of `run`, `pack`, and `check`
+- [Submission Archives](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/submission.md): what `submission.zip` contains
+- [Participant Packages](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/dependencies.md): how the packages of `pyproject.toml` are reproduced
+- [Scoring](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.0/docs/scoring.md): how a case and a suite are scored
 
 ## License
 
