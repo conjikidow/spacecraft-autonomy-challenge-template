@@ -52,6 +52,7 @@ with app.setup(hide_code=True):
         final_status,
         git_config,
         receipt_lines,
+        score_text,
     )
 
     REPOSITORY_DIR = Path(__file__).resolve().parent
@@ -773,8 +774,8 @@ def _(final_button, practice_button, server_form):
 
 @app.cell(hide_code=True)
 def _():
-    board_button = mo.ui.run_button(label="Show boards")
-    mine_checkbox = mo.ui.checkbox(label="Only my submissions")
+    board_button = mo.ui.run_button(label="Show leaderboard")
+    mine_checkbox = mo.ui.checkbox(label="Only my practice submissions")
     return board_button, mine_checkbox
 
 
@@ -786,7 +787,7 @@ def _(board_button, mine_checkbox, server_form):
             """
             If the evaluation server has a leaderboard, show it, and whether final
             submissions are open. It uses the server URL and token above.
-            Click again to update it.
+            Click again to update it, also after changing the options.
             """
         ),
         mo.hstack([board_button, mine_checkbox], justify="start", gap=1),
@@ -804,26 +805,37 @@ def _(board_button, mine_checkbox, server_form):
                 mo.callout(str(error), kind="danger", title="Could not load the board")
             )
         else:
-            if _practice is None and _final is None:
-                _sections.append(mo.md("This server has no leaderboard."))
+            _score = {"Score": score_text}
             if _final is not None:
                 _status = final_status(_final)
                 if _status is not None:
                     _sections.append(mo.callout(_status, kind="info"))
                 if _final.get("published"):
+                    _final_rows = board_rows(_final, *FINAL_COLUMNS, formatted=False)
                     _sections += [
                         mo.md("### Final ranking"),
-                        mo.ui.table(board_rows(_final, *FINAL_COLUMNS), selection=None),
+                        mo.ui.table(_final_rows, selection=None, format_mapping=_score)
+                        if _final_rows
+                        else mo.md("No final ranking."),
                     ]
             if _practice is not None:
-                _rows = board_rows(_practice, *PRACTICE_COLUMNS)
+                _rows = board_rows(_practice, *PRACTICE_COLUMNS, formatted=False)
                 _total = _practice.get("total", len(_rows))
+                _empty = (
+                    "None of your practice submissions has been evaluated."
+                    if mine_checkbox.value
+                    else "No evaluated practice submissions."
+                )
                 _sections += [
                     mo.md(f"### Practice leaderboard ({len(_rows)} of {_total})"),
-                    mo.ui.table(_rows, selection=None)
+                    mo.ui.table(_rows, selection=None, format_mapping=_score)
                     if _rows
-                    else mo.md("No evaluated practice submissions."),
+                    else mo.md(_empty),
                 ]
+            if len(_sections) == 3:
+                _sections.append(
+                    mo.md(f"No leaderboard at {_server.url}; check the server address.")
+                )
     mo.vstack(_sections)
     return
 

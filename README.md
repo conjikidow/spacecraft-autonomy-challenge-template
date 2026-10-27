@@ -96,7 +96,8 @@ You are identified by `git config user.email` and `git config user.name`;
 The **Evaluation server** section of the notebook does the same.
 
 If the server has a leaderboard, `uv run submit.py --board` shows it,
-with whether final submissions are open and the time left; `--mine` lists only your submissions.
+with whether final submissions are open and the time left, and the final ranking once it is published;
+`--mine` lists only your practice submissions.
 The **Leaderboard** section of the notebook shows the same.
 
 ## Documentation

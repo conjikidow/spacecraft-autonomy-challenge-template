@@ -26,8 +26,8 @@ The server speaks a small HTTP protocol, relative to its base URL:
     GET  board/final
         the final submissions, if the server has this board: "window", null if the
         server has no final submission window, with its phase (not_started, open,
-        or closed), closes_at, closed_at, and remaining_s, and, once "published"
-        is true, "rows" of rank, name, score, and submitted_at
+        or closed), now, opened_at, closes_at, closed_at, and remaining_s, and,
+        once "published" is true, "rows" of rank, name, score, and submitted_at
 
 Errors are JSON objects with a "detail" message.
 """
@@ -39,6 +39,7 @@ import os
 import subprocess
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -202,7 +203,7 @@ def local_time(text: object) -> str:
 
 def clock(seconds: float) -> str:
     """`seconds` as `H:MM:SS`."""
-    total = max(0, int(seconds))
+    total = max(0, int(seconds)) if isinstance(seconds, int | float) else 0
     return f"{total // 3600}:{total % 3600 // 60:02d}:{total % 60:02d}"
 
 
@@ -230,14 +231,16 @@ def final_status(board: dict[str, Any]) -> str | None:
     """One line on the final submissions of `board` from `final_board()`, or `None`
     if the server has no final submission window."""
     window = board.get("window")
-    if window is None:
+    if not isinstance(window, dict):
         return None
     phase = window.get("phase")
     if phase == "open":
         left = window.get("remaining_s")
-        left = "" if left is None else f": {clock(left)} left"
+        left = f": {clock(left)} left" if isinstance(left, int | float) else ""
         until = local_time(window.get("closes_at"))
-        return f"Final submissions are open{left} (until {until})"
+        return f"Final submissions are open{left}" + (
+            f" (until {until})" if until else ""
+        )
     if phase == "closed":
         closed_at = local_time(window.get("closed_at"))
         since = f"Final submissions are closed (since {closed_at})."
@@ -246,40 +249,59 @@ def final_status(board: dict[str, Any]) -> str | None:
             if board.get("published")
             else since
         )
-    return "Final submissions have not opened yet."
+    if phase == "not_started":
+        return "Final submissions have not opened yet."
+    return f"Final submission window: {phase or 'unknown'}"
 
 
-def board_rows(board: dict[str, Any], *columns: str) -> list[dict[str, Any]]:
-    """The rows of a leaderboard with the given columns, for display: scores to two
-    decimals and times in local time, under headings such as `Submitted at`."""
+def score_text(value: object) -> str:
+    """A score to two decimals, or an empty text without one."""
+    return f"{value:.2f}" if isinstance(value, int | float) else ""
+
+
+def board_rows(
+    board: dict[str, Any], *columns: str, formatted: bool = True
+) -> list[dict[str, Any]]:
+    """The rows of a leaderboard with the given columns, for display, under headings
+    such as `Submitted at`: times in local time and, if `formatted`, scores to two
+    decimals; otherwise scores stay numbers, so that tables sort them as numbers."""
 
     def shown(column: str, value: object) -> object:
-        if column == "score" and isinstance(value, int | float):
-            return f"{value:.2f}"
+        if column == "score":
+            return score_text(value) if formatted else value
         if column == "submitted_at":
             return local_time(value)
         return "" if value is None else value
 
+    rows = board.get("rows")
     return [
         {
             column.replace("_", " ").capitalize(): shown(column, row.get(column))
             for column in columns
         }
-        for row in board.get("rows", [])
+        for row in (rows if isinstance(rows, list) else [])
+        if isinstance(row, dict)
     ]
 
 
+def _width(text: str) -> int:
+    """Display width of `text` in a terminal: wide characters such as kanji take
+    two columns."""
+    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in text)
+
+
 def table_lines(rows: list[dict[str, Any]]) -> list[str]:
-    """`rows` as a plain-text table."""
+    """`rows` as a plain-text table, aligned for wide characters too."""
     if not rows:
         return []
     columns = list(rows[0])
-    widths = [max(len(c), *(len(str(row[c])) for row in rows)) for c in columns]
-    lines = ["  ".join(c.ljust(w) for c, w in zip(columns, widths)).rstrip()]
-    for row in rows:
-        cells = (str(row[c]).ljust(w) for c, w in zip(columns, widths))
-        lines.append("  ".join(cells).rstrip())
-    return lines
+    widths = [max(_width(c), *(_width(str(row[c])) for row in rows)) for c in columns]
+
+    def line(cells: list[str]) -> str:
+        padded = (cell + " " * (w - _width(cell)) for cell, w in zip(cells, widths))
+        return "  ".join(padded).rstrip()
+
+    return [line(columns), *(line([str(row[c]) for c in columns]) for row in rows)]
 
 
 PRACTICE_COLUMNS = ("rank", "name", "score", "submitted_at", "submission", "count")
@@ -318,7 +340,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "instead of submitting",
     )
     parser.add_argument(
-        "--mine", action="store_true", help="with --board, only your submissions"
+        "--mine",
+        action="store_true",
+        help="with --board, only your practice submissions",
     )
     parser.add_argument("--server", help=f"base URL (default: ${URL_VARIABLE})")
     parser.add_argument("--token", help=f"server token (default: ${TOKEN_VARIABLE})")
@@ -407,24 +431,47 @@ def _show_boards(args: argparse.Namespace, participant_id: str | None) -> int:
     except ServerError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
-    if practice is None and final is None:
-        print("This server has no leaderboard.")
-        return 0
+    print("\n".join(board_lines(practice, final, mine=args.mine, url=server.url)))
+    return 0
+
+
+def board_lines(
+    practice: dict[str, Any] | None,
+    final: dict[str, Any] | None,
+    *,
+    mine: bool = False,
+    url: str = "",
+) -> list[str]:
+    """The boards from `boards()` as text: the final window and ranking, if any,
+    then the practice leaderboard, if any."""
+    blocks = []
     if final is not None:
+        block = []
         status = final_status(final)
         if status is not None:
-            print(status)
+            block.append(status)
         if final.get("published"):
-            print("\nFinal ranking")
-            print("\n".join(table_lines(board_rows(final, *FINAL_COLUMNS))))
-        print()
+            rows = table_lines(board_rows(final, *FINAL_COLUMNS))
+            block += [
+                *([""] if block else []),
+                "Final ranking",
+                *(rows or ["No final ranking."]),
+            ]
+        if block:
+            blocks.append(block)
     if practice is not None:
         rows = board_rows(practice, *PRACTICE_COLUMNS)
-        print(
-            f"Practice leaderboard ({len(rows)} of {practice.get('total', len(rows))})"
+        total = practice.get("total", len(rows))
+        empty = (
+            "None of your practice submissions has been evaluated."
+            if mine
+            else "No evaluated practice submissions."
         )
-        print("\n".join(table_lines(rows)) or "No evaluated practice submissions.")
-    return 0
+        heading = f"Practice leaderboard ({len(rows)} of {total})"
+        blocks.append([heading, *(table_lines(rows) or [empty])])
+    if not blocks:
+        return [f"No leaderboard at {url}; check the server address."]
+    return [line for block in blocks for line in [*block, ""]][:-1]
 
 
 if __name__ == "__main__":
