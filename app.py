@@ -48,6 +48,7 @@ with app.setup(hide_code=True):
     from spacecraft_autonomy_challenge.judge.views import (
         dependencies_view,
         results_view,
+        text_view,
     )
     from spacecraft_autonomy_challenge.results import TerminationReason
     from spacecraft_autonomy_challenge.simulation import run
@@ -485,7 +486,7 @@ def _(load_error, result, strategy_output):
     if load_error:
         _sections.append(
             mo.callout(
-                mo.plain_text(load_error),
+                text_view(load_error),
                 kind="danger",
                 title=f"Could not load submission/strategy.py:{STRATEGY_CLASS}",
             )
@@ -562,7 +563,7 @@ def _(load_error, result, strategy_output):
         ):
             _sections.append(
                 mo.callout(
-                    mo.plain_text(result.termination.detail),
+                    text_view(result.termination.detail),
                     kind="danger",
                     title=f"The run ended with {_metrics.termination_reason}",
                 )
@@ -570,7 +571,7 @@ def _(load_error, result, strategy_output):
     _sections.append(
         mo.accordion(
             {
-                "Strategy output (stdout and stderr)": mo.plain_text(strategy_output)
+                "Strategy output (stdout and stderr)": text_view(strategy_output)
                 if strategy_output
                 else mo.md("The strategy printed nothing.")
             }
@@ -615,11 +616,7 @@ def _(prepare_button):
             )
             _sections.append(
                 mo.accordion(
-                    {
-                        f"Contents ({len(_names)} files)": mo.plain_text(
-                            "\n".join(_names)
-                        )
-                    }
+                    {f"Contents ({len(_names)} files)": text_view("\n".join(_names))}
                 )
             )
     mo.vstack(_sections)
@@ -769,7 +766,7 @@ def _(final_button, practice_button, server_form):
         else:
             _sections.append(
                 mo.callout(
-                    mo.plain_text("\n".join(receipt_lines(_document))),
+                    text_view("\n".join(receipt_lines(_document))),
                     kind="success" if _document.get("status") != "failed" else "danger",
                     title="Final submission received" if _final else "Submission",
                 )
