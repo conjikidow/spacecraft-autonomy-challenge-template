@@ -1,15 +1,15 @@
-# Spacecraft Operations Challenge: Template
+# Spacecraft Autonomy Challenge: Template
 
 [![License](https://img.shields.io/badge/license-MIT--0-blue.svg?style=flat)](LICENSE)
 
 [English](README.md) | **日本語**
 
-Spacecraft Operations Challenge の戦略を書くなら，ここから始めてください。
+Spacecraft Autonomy Challenge の戦略を書くなら，ここから始めてください。
 戦略はシミュレーション上の宇宙機を運用します。
 テレメトリを読み取ってコマンドをスケジュールし，制約を守りながら，宇宙機の Δv を目標値まで増やします。
 
-チャレンジ問題，シミュレータ，`spacecraft-ops-challenge` コマンドは，
-[`spacecraft-operations-challenge-core`](https://github.com/conjikidow/spacecraft-operations-challenge-core) パッケージが提供します。
+チャレンジ問題，シミュレータ，`autonomy-challenge` コマンドは，
+[`spacecraft-autonomy-challenge-core`](https://github.com/conjikidow/spacecraft-autonomy-challenge-core) パッケージが提供します。
 このパッケージは，`pyproject.toml` でリリースタグに固定されています。
 
 ## 必要なもの
@@ -29,7 +29,7 @@ uv sync
 `nominal` シナリオで実行します。
 
 ```sh
-uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy
+uv run autonomy-challenge run submission/strategy.py:MyStrategy
 ```
 
 このコマンドは，シミュレーションがどのように終了したかと，宇宙機の真の状態から計算した評価指標を出力します。
@@ -37,8 +37,8 @@ uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy
 利用可能なシナリオを一覧表示し，別のシナリオで実行します。
 
 ```sh
-uv run spacecraft-ops-challenge scenarios
-uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy --scenario thruster-degradation
+uv run autonomy-challenge scenarios
+uv run autonomy-challenge run submission/strategy.py:MyStrategy --scenario thruster-degradation
 ```
 
 `--json` を付けると，評価指標を JSON として出力します。
@@ -67,13 +67,13 @@ uv run marimo edit app.py
 ## 提出物の確認
 
 ```sh
-uv run spacecraft-ops-challenge check
+uv run autonomy-challenge check
 ```
 
 このコマンドは，`submission/` と `pyproject.toml` をメモリ上で `submission.zip` にまとめ，評価サーバーと同じ方法ですべての公開シナリオで評価します。
 各シナリオでは戦略を新しい Python プロセスで起動し，`pyproject.toml` のパッケージのうち足りないものは，この確認のためだけにインストールします。
 得点，要約，ケースごとの表を出力します。
-`uv run spacecraft-ops-challenge pack` は，評価せずに `submission.zip` をファイルに書き出します。
+`uv run autonomy-challenge pack` は，評価せずに `submission.zip` をファイルに書き出します。
 
 ## 評価サーバーへの提出
 
@@ -102,16 +102,16 @@ Windows の場合や環境変数を使わない場合は，`--server <URL>` と 
 API とチャレンジについては，core リポジトリのドキュメントを参照してください。
 リンク先は，このテンプレートが使用している core のバージョンのドキュメントです。
 
-- [戦略の書き方](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
-- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/timeline.ja.md)：コマンドの種類と順序規則
-- [宇宙機モデル](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
-- [シミュレーション](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/simulation.ja.md)：イベントの順序と終了条件
-- [チャレンジ問題](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
-- [評価](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
-- [コマンドラインツール](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/README.ja.md#コマンドラインツール)：`run`，`pack`，`check` のオプションと終了ステータス
-- [提出アーカイブ](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/submission.ja.md)：`submission.zip` の内容
-- [参加者のパッケージ](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/dependencies.ja.md)：`pyproject.toml` のパッケージの再現方法
-- [得点](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/scoring.ja.md)：評価ケースと `Suite` の得点の計算方法
+- [戦略の書き方](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
+- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/timeline.ja.md)：コマンドの種類と順序規則
+- [宇宙機モデル](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
+- [シミュレーション](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/simulation.ja.md)：イベントの順序と終了条件
+- [チャレンジ問題](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
+- [評価](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
+- [コマンドラインツール](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/README.ja.md#コマンドラインツール)：`run`，`pack`，`check` のオプションと終了ステータス
+- [提出アーカイブ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/submission.ja.md)：`submission.zip` の内容
+- [参加者のパッケージ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/dependencies.ja.md)：`pyproject.toml` のパッケージの再現方法
+- [得点](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.0.0/docs/scoring.ja.md)：評価ケースと `Suite` の得点の計算方法
 
 ## ライセンス
 

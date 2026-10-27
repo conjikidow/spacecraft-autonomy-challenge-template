@@ -12,10 +12,10 @@
         '/^README(\\.ja)?\\.md$/',
       ],
       matchStrings: [
-        'https://github\\.com/conjikidow/spacecraft-operations-challenge-core/blob/(?<currentValue>v\\d+\\.\\d+\\.\\d+)/',
+        'https://github\\.com/conjikidow/spacecraft-autonomy-challenge-core/blob/(?<currentValue>v\\d+\\.\\d+\\.\\d+)/',
       ],
-      depNameTemplate: 'spacecraft-operations-challenge-core',
-      packageNameTemplate: 'conjikidow/spacecraft-operations-challenge-core',
+      depNameTemplate: 'spacecraft-autonomy-challenge-core',
+      packageNameTemplate: 'conjikidow/spacecraft-autonomy-challenge-core',
       datasourceTemplate: 'github-tags',
     },
   ],
@@ -23,16 +23,16 @@
     {
       description: 'Track only the core package, as the other dependencies are left to the participants',
       matchPackageNames: [
-        '!conjikidow/spacecraft-operations-challenge-core',
+        '!conjikidow/spacecraft-autonomy-challenge-core',
       ],
       enabled: false,
     },
     {
       description: 'Update the core pin in pyproject.toml and uv.lock together with the README links in one pull request, going straight to the latest tag',
       matchPackageNames: [
-        'conjikidow/spacecraft-operations-challenge-core',
+        'conjikidow/spacecraft-autonomy-challenge-core',
       ],
-      groupName: 'spacecraft-operations-challenge-core',
+      groupName: 'spacecraft-autonomy-challenge-core',
       separateMajorMinor: false,
     },
   ],

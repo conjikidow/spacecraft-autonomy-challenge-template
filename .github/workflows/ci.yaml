@@ -445,7 +445,7 @@ jobs:
         run: uv run --no-sync marimo check --strict app.py
 
       - name: Run the starter strategy
-        run: uv run --no-sync spacecraft-ops-challenge run submission/strategy.py:MyStrategy
+        run: uv run --no-sync autonomy-challenge run submission/strategy.py:MyStrategy
 
   check-spelling:
     name: Check spelling
