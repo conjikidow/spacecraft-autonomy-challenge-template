@@ -720,7 +720,7 @@ def _():
         [
             mo.md("## Evaluation server"),
             mo.md("Needed only if your event has an evaluation server."),
-            server_form,
+            *server_form.values(),
         ]
     )
     return final_button, practice_button, server_form
