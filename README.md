@@ -1,4 +1,4 @@
-# Spacecraft Operations Challenge: Submission Template
+# Spacecraft Operations Challenge: Template
 
 [![License](https://img.shields.io/badge/license-MIT--0-blue.svg?style=flat)](LICENSE)
 
