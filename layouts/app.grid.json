@@ -101,7 +101,7 @@
           22,
           146,
           4,
-          21
+          19
         ],
         "scrollable": true
       },
@@ -121,8 +121,8 @@
         "position": [
           14,
           146,
-          8,
-          21
+          7,
+          19
         ],
         "scrollable": true
       },
@@ -141,9 +141,9 @@
       {
         "position": [
           14,
-          168,
+          166,
           12,
-          60
+          62
         ],
         "scrollable": true
       }
