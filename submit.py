@@ -3,6 +3,7 @@
     uv run submit.py              # practice evaluation: wait for the result, show it
     uv run submit.py --final      # final submission: show the receipt
     uv run submit.py --status ID  # show a submission, waiting for its result
+    uv run submit.py --board      # show the leaderboard and whether finals are open
 
 The archive is `submission.zip` as `spacecraft-ops-challenge pack` builds it: the
 `submission/` directory and `pyproject.toml`. The server address and token come from
@@ -19,6 +20,14 @@ The server speaks a small HTTP protocol, relative to its base URL:
         the receipt with its current status; a completed practice submission also
         carries the result document of `spacecraft-ops-challenge check --json`
         under "result"
+    GET  board/practice?limit=...&participant_id=...
+        the practice leaderboard, if the server has one: "total" and "rows" of
+        rank, name, score, submitted_at, submission, and count
+    GET  board/final
+        the final submissions, if the server has this board: "window", null if the
+        server has no final submission window, with its phase (not_started, open,
+        or closed), now, opened_at, closes_at, closed_at, and remaining_s, and,
+        once "published" is true, "rows" of rank, name, score, and submitted_at
 
 Errors are JSON objects with a "detail" message.
 """
@@ -30,10 +39,12 @@ import os
 import subprocess
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -46,7 +57,14 @@ UPLOAD_BYTES_PER_S = 100_000
 
 
 class ServerError(Exception):
-    """Raised when the evaluation server cannot be reached or rejects a request."""
+    """Raised when the evaluation server cannot be reached or rejects a request.
+
+    `status` is the HTTP status of a rejection, `None` if there was no answer.
+    """
+
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
 
 
 def git_config(key: str, directory: Path = PROJECT_DIR) -> str | None:
@@ -106,7 +124,8 @@ class EvaluationServer:
             except (ValueError, AttributeError):
                 detail = None
             raise ServerError(
-                f"the server answered {error.code}: {detail or error.reason}"
+                f"the server answered {error.code}: {detail or error.reason}",
+                error.code,
             ) from None
         except (urllib.error.URLError, OSError) as error:
             reason = getattr(error, "reason", error)
@@ -157,6 +176,137 @@ class EvaluationServer:
                 return document
             time.sleep(poll_s)
 
+    def practice_board(
+        self, *, limit: int = 50, participant_id: str | None = None
+    ) -> dict[str, Any]:
+        """The practice leaderboard: the top `limit` rows, or the participant's."""
+        params = {"limit": str(limit)}
+        if participant_id:
+            params["participant_id"] = participant_id
+        return self._request("GET", "board/practice", params)
+
+    def final_board(self) -> dict[str, Any]:
+        """The final window and, once published, the final ranking."""
+        return self._request("GET", "board/final")
+
+
+def local_time(text: object) -> str:
+    """An ISO 8601 time from the server in local time, or the text as given."""
+    if text is None:
+        return ""
+    try:
+        moment = datetime.fromisoformat(str(text))
+    except ValueError:
+        return str(text)
+    return moment.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def clock(seconds: float) -> str:
+    """`seconds` as `H:MM:SS`."""
+    total = max(0, int(seconds)) if isinstance(seconds, int | float) else 0
+    return f"{total // 3600}:{total % 3600 // 60:02d}:{total % 60:02d}"
+
+
+def boards(
+    server: EvaluationServer, participant_id: str | None = None
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """The practice leaderboard and the final board of `server`, `None` for a board
+    that the server does not have. Raises `ServerError` for any other failure."""
+
+    def board(fetch: Callable[[], dict[str, Any]]) -> dict[str, Any] | None:
+        try:
+            return fetch()
+        except ServerError as error:
+            if error.status == 404:
+                return None
+            raise
+
+    return (
+        board(lambda: server.practice_board(participant_id=participant_id)),
+        board(server.final_board),
+    )
+
+
+def final_status(board: dict[str, Any]) -> str | None:
+    """One line on the final submissions of `board` from `final_board()`, or `None`
+    if the server has no final submission window."""
+    window = board.get("window")
+    if not isinstance(window, dict):
+        return None
+    phase = window.get("phase")
+    if phase == "open":
+        left = window.get("remaining_s")
+        left = f": {clock(left)} left" if isinstance(left, int | float) else ""
+        until = local_time(window.get("closes_at"))
+        return f"Final submissions are open{left}" + (
+            f" (until {until})" if until else ""
+        )
+    if phase == "closed":
+        closed_at = local_time(window.get("closed_at"))
+        since = f"Final submissions are closed (since {closed_at})."
+        return (
+            f"{since} The final ranking is published."
+            if board.get("published")
+            else since
+        )
+    if phase == "not_started":
+        return "Final submissions have not opened yet."
+    return f"Final submission window: {phase or 'unknown'}"
+
+
+def score_text(value: object) -> str:
+    """A score to two decimals, or an empty text without one."""
+    return f"{value:.2f}" if isinstance(value, int | float) else ""
+
+
+def board_rows(
+    board: dict[str, Any], *columns: str, formatted: bool = True
+) -> list[dict[str, Any]]:
+    """The rows of a leaderboard with the given columns, for display, under headings
+    such as `Submitted at`: times in local time and, if `formatted`, scores to two
+    decimals; otherwise scores stay numbers, so that tables sort them as numbers."""
+
+    def shown(column: str, value: object) -> object:
+        if column == "score":
+            return score_text(value) if formatted else value
+        if column == "submitted_at":
+            return local_time(value)
+        return "" if value is None else value
+
+    rows = board.get("rows")
+    return [
+        {
+            column.replace("_", " ").capitalize(): shown(column, row.get(column))
+            for column in columns
+        }
+        for row in (rows if isinstance(rows, list) else [])
+        if isinstance(row, dict)
+    ]
+
+
+def _width(text: str) -> int:
+    """Display width of `text` in a terminal: wide characters such as kanji take
+    two columns."""
+    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in text)
+
+
+def table_lines(rows: list[dict[str, Any]]) -> list[str]:
+    """`rows` as a plain-text table, aligned for wide characters too."""
+    if not rows:
+        return []
+    columns = list(rows[0])
+    widths = [max(_width(c), *(_width(str(row[c])) for row in rows)) for c in columns]
+
+    def line(cells: list[str]) -> str:
+        padded = (cell + " " * (w - _width(cell)) for cell, w in zip(cells, widths))
+        return "  ".join(padded).rstrip()
+
+    return [line(columns), *(line([str(row[c]) for c in columns]) for row in rows)]
+
+
+PRACTICE_COLUMNS = ("rank", "name", "score", "submitted_at", "submission", "count")
+FINAL_COLUMNS = ("rank", "name", "score", "submitted_at")
+
 
 def receipt_lines(receipt: dict[str, Any]) -> list[str]:
     """The receipt as `label: value` lines."""
@@ -183,6 +333,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     action.add_argument(
         "--status", metavar="ID", help="show the submission ID instead of submitting"
     )
+    action.add_argument(
+        "--board",
+        action="store_true",
+        help="show the leaderboard and whether final submissions are open "
+        "instead of submitting",
+    )
+    parser.add_argument(
+        "--mine",
+        action="store_true",
+        help="with --board, only your practice submissions",
+    )
     parser.add_argument("--server", help=f"base URL (default: ${URL_VARIABLE})")
     parser.add_argument("--token", help=f"server token (default: ${TOKEN_VARIABLE})")
     parser.add_argument("--participant-id", help="default: git config user.email")
@@ -200,8 +361,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         build_submission,
     )
 
+    if args.mine and not args.board:
+        parser.error("--mine needs --board")
     participant_id = args.participant_id or git_config("user.email")
     participant_name = args.participant_name or git_config("user.name")
+    if args.board:
+        if args.mine and not participant_id:
+            parser.error("set git config user.email or pass --participant-id")
+        return _show_boards(args, participant_id)
     if args.status is None and not (participant_id and participant_name):
         parser.error(
             "set git config user.email and user.name, "
@@ -252,6 +419,59 @@ def main(argv: Sequence[str] | None = None) -> int:
     print()
     print(format_check_report(str(receipt.get("id")), result))
     return 1 if problem_outcomes(result.outcomes) else 0
+
+
+def _show_boards(args: argparse.Namespace, participant_id: str | None) -> int:
+    try:
+        server = EvaluationServer(
+            args.server or os.environ.get(URL_VARIABLE, ""),
+            args.token or os.environ.get(TOKEN_VARIABLE),
+        )
+        practice, final = boards(server, participant_id if args.mine else None)
+    except ServerError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    print("\n".join(board_lines(practice, final, mine=args.mine, url=server.url)))
+    return 0
+
+
+def board_lines(
+    practice: dict[str, Any] | None,
+    final: dict[str, Any] | None,
+    *,
+    mine: bool = False,
+    url: str = "",
+) -> list[str]:
+    """The boards from `boards()` as text: the final window and ranking, if any,
+    then the practice leaderboard, if any."""
+    blocks = []
+    if final is not None:
+        block = []
+        status = final_status(final)
+        if status is not None:
+            block.append(status)
+        if final.get("published"):
+            rows = table_lines(board_rows(final, *FINAL_COLUMNS))
+            block += [
+                *([""] if block else []),
+                "Final ranking",
+                *(rows or ["No final ranking."]),
+            ]
+        if block:
+            blocks.append(block)
+    if practice is not None:
+        rows = board_rows(practice, *PRACTICE_COLUMNS)
+        total = practice.get("total", len(rows))
+        empty = (
+            "None of your practice submissions has been evaluated."
+            if mine
+            else "No evaluated practice submissions."
+        )
+        heading = f"Practice leaderboard ({len(rows)} of {total})"
+        blocks.append([heading, *(table_lines(rows) or [empty])])
+    if not blocks:
+        return [f"No leaderboard at {url}; check the server address."]
+    return [line for block in blocks for line in [*block, ""]][:-1]
 
 
 if __name__ == "__main__":
