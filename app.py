@@ -649,6 +649,8 @@ def _(check_button):
         check_button,
     ]
     if check_button.value:
+        # Shown now, so the spinner appears below the heading instead of replacing it.
+        mo.output.replace(mo.vstack(_sections))
         try:
             with mo.status.spinner(
                 title="Checking on the public scenarios"
@@ -735,6 +737,8 @@ def _(final_button, practice_button, server_form):
         mo.hstack([practice_button, final_button], justify="start", gap=1),
     ]
     if practice_button.value or final_button.value:
+        # Shown now, so the spinner appears below the heading instead of replacing it.
+        mo.output.replace(mo.vstack(_sections))
         _final = bool(final_button.value)
         _form = server_form.value
         try:
