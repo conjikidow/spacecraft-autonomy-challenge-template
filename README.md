@@ -95,6 +95,10 @@ You are identified by `git config user.email` and `git config user.name`;
 `--participant-id` and `--participant-name` override them, and `uv run submit.py --help` lists all options.
 The **Evaluation server** section of the notebook does the same.
 
+If the server has a leaderboard, `uv run submit.py --board` shows it,
+with whether final submissions are open and the time left; `--mine` lists only your submissions.
+The **Leaderboard** section of the notebook shows the same.
+
 ## Documentation
 
 The core repository documents the API and the challenge, at the commit this template uses:

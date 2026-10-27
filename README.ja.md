@@ -93,6 +93,10 @@ Windows の場合や環境変数を使わない場合は，`--server <URL>` と 
 `--participant-id` と `--participant-name` で上書きでき，`uv run submit.py --help` ですべてのオプションを確認できます。
 ノートブックの **Evaluation server** セクションでも同じことができます。
 
+サーバーにリーダーボードがある場合は，`uv run submit.py --board` で，最終提出を受け付けているかどうかと残り時間とともに表示できます。
+`--mine` を付けると，自分の提出だけを表示します。
+ノートブックの **Leaderboard** セクションでも同じものを表示できます。
+
 ## ドキュメント
 
 API とチャレンジについては，core リポジトリのドキュメントを参照してください。
