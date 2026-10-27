@@ -77,7 +77,8 @@ uv run autonomy-challenge check
 
 ## 評価サーバーへの提出
 
-イベントに評価サーバーがある場合は，運営者からその URL と，必要ならトークンが伝えられます。
+イベントに評価サーバーがある場合は，運営者からその API の URL（`http://<host>:<port>/api/v1` など）と，必要ならトークンが伝えられます。
+`http://<host>:<port>` のようにパスのない URL は `http://<host>:<port>/api/v1` として扱われます。
 
 ```sh
 export EVALUATION_SERVER_URL=<URL>
