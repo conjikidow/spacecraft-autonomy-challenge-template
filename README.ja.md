@@ -93,7 +93,7 @@ Windows の場合や環境変数を使わない場合は，`--server <URL>` と 
 提出者は `git config user.email` と `git config user.name` で識別されます。
 `--participant-id` と `--participant-name` で上書きでき，`uv run submit.py --help` ですべてのオプションを確認できます。
 ノートブックでは，**Evaluation server** セクションにサーバーの設定を入力し，**Submit** セクションから提出できます。
-URL とトークンは `EVALUATION_SERVER_URL` と `EVALUATION_SERVER_TOKEN` から，ID と名前は `git config` から，あらかじめ入力されています。
+URL とトークンは `EVALUATION_SERVER_URL` と `EVALUATION_SERVER_TOKEN` から，メールアドレスと名前は `git config` から，あらかじめ入力されています。
 
 サーバーに順位表がある場合は，`uv run submit.py --board` で，最終提出を受け付けているかどうかと残り時間，公開後の最終順位とともに表示できます。
 `--mine` を付けると，自分の練習提出だけを表示します。

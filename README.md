@@ -97,7 +97,7 @@ You are identified by `git config user.email` and `git config user.name`;
 `--participant-id` and `--participant-name` override them, and `uv run submit.py --help` lists all options.
 In the notebook, enter the server settings under **Evaluation server** and submit from the **Submit** section.
 The notebook pre-fills the URL and the token from `EVALUATION_SERVER_URL` and `EVALUATION_SERVER_TOKEN`,
-and your ID and name from `git config`.
+and your email and name from `git config`.
 
 If the server has a leaderboard, `uv run submit.py --board` shows it,
 with whether final submissions are open and the time left, and the final ranking once it is published;

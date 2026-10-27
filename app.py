@@ -691,7 +691,7 @@ def _():
             ),
             "participant_id": mo.ui.text(
                 value=git_config("user.email") or "",
-                label="Your ID",
+                label="Your email",
                 full_width=True,
             ),
             "participant_name": mo.ui.text(
@@ -741,7 +741,7 @@ def _(final_button, practice_button, server_form):
             if not (
                 _form["participant_id"].strip() and _form["participant_name"].strip()
             ):
-                raise ServerError("enter your ID and name")
+                raise ServerError("enter your email and name")
             _server = EvaluationServer(_form["url"], _form["token"])
             _receipt = _server.submit(
                 build_submission(REPOSITORY_DIR),
@@ -808,7 +808,9 @@ def _(board_button, mine_checkbox, server_form):
             _server = EvaluationServer(_form["url"], _form["token"])
             _mine = _form["participant_id"].strip() if mine_checkbox.value else None
             if mine_checkbox.value and not _mine:
-                raise ServerError("enter your ID to see only your practice submissions")
+                raise ServerError(
+                    "enter your email to see only your practice submissions"
+                )
             _practice, _final = boards(_server, _mine)
         except ServerError as error:
             _sections.append(
