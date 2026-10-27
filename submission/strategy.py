@@ -1,6 +1,6 @@
-"""Your strategy for the Spacecraft Operations Challenge."""
+"""Your strategy for the Spacecraft Autonomy Challenge."""
 
-from spacecraft_ops_challenge import (  # noqa: F401
+from spacecraft_autonomy_challenge import (  # noqa: F401
     Commander,
     CommandError,
     CommandId,

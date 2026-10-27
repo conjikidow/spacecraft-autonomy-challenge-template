@@ -5,7 +5,7 @@
     uv run submit.py --status ID  # show a submission, waiting for its result
     uv run submit.py --board      # show the leaderboard and whether finals are open
 
-The archive is `submission.zip` as `spacecraft-ops-challenge pack` builds it: the
+The archive is `submission.zip` as `autonomy-challenge pack` builds it: the
 `submission/` directory and `pyproject.toml`. The server address and token come from
 `--server` and `--token`, or from the environment variables `EVALUATION_SERVER_URL`
 and `EVALUATION_SERVER_TOKEN`. You are identified by `git config user.email` and
@@ -18,7 +18,7 @@ The server speaks a small HTTP protocol, relative to its base URL:
         body: submission.zip; answers with a receipt: id, status, sha256, ...
     GET  submissions/{id}
         the receipt with its current status; a completed practice submission also
-        carries the result document of `spacecraft-ops-challenge check --json`
+        carries the result document of `autonomy-challenge check --json`
         under "result"
     GET  board/practice?limit=...&participant_id=...
         the practice leaderboard, if the server has one: "total" and "rows" of
@@ -350,13 +350,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--participant-name", help="default: git config user.name")
     args = parser.parse_args(argv)
 
-    from spacecraft_ops_challenge.cli import format_check_report
-    from spacecraft_ops_challenge.judge.reporting import (
+    from spacecraft_autonomy_challenge.cli import format_check_report
+    from spacecraft_autonomy_challenge.judge.reporting import (
         EvaluationResult,
         ResultFormatError,
         problem_outcomes,
     )
-    from spacecraft_ops_challenge.judge.submission import (
+    from spacecraft_autonomy_challenge.judge.submission import (
         SubmissionError,
         build_submission,
     )

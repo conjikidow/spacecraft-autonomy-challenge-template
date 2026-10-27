@@ -22,23 +22,35 @@ with app.setup(hide_code=True):
     from pathlib import Path
 
     import marimo as mo
-    from spacecraft_ops_challenge import Commander, Strategy, Telemetry, __version__
-    from spacecraft_ops_challenge.challenge import problem, scenario, scenario_names
-    from spacecraft_ops_challenge.commands import Command
-    from spacecraft_ops_challenge.evaluation import evaluate
-    from spacecraft_ops_challenge.judge.dependencies import DependencyError
-    from spacecraft_ops_challenge.judge.judging import check_submission
-    from spacecraft_ops_challenge.judge.reporting import (
+    from spacecraft_autonomy_challenge import (
+        Commander,
+        Strategy,
+        Telemetry,
+        __version__,
+    )
+    from spacecraft_autonomy_challenge.challenge import (
+        problem,
+        scenario,
+        scenario_names,
+    )
+    from spacecraft_autonomy_challenge.commands import Command
+    from spacecraft_autonomy_challenge.evaluation import evaluate
+    from spacecraft_autonomy_challenge.judge.dependencies import DependencyError
+    from spacecraft_autonomy_challenge.judge.judging import check_submission
+    from spacecraft_autonomy_challenge.judge.reporting import (
         EvaluationResult,
         ResultFormatError,
     )
-    from spacecraft_ops_challenge.judge.submission import (
+    from spacecraft_autonomy_challenge.judge.submission import (
         SubmissionError,
         build_submission,
     )
-    from spacecraft_ops_challenge.judge.views import dependencies_view, results_view
-    from spacecraft_ops_challenge.results import TerminationReason
-    from spacecraft_ops_challenge.simulation import run
+    from spacecraft_autonomy_challenge.judge.views import (
+        dependencies_view,
+        results_view,
+    )
+    from spacecraft_autonomy_challenge.results import TerminationReason
+    from spacecraft_autonomy_challenge.simulation import run
 
     from submit import (
         FINAL_COLUMNS,
@@ -60,7 +72,7 @@ with app.setup(hide_code=True):
     STRATEGY_FILE = SUBMISSION_DIR / "strategy.py"
     STRATEGY_CLASS = "MyStrategy"
     CORE_DOCS_URL = (
-        "https://github.com/conjikidow/spacecraft-operations-challenge-core"
+        "https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
         f"/blob/v{__version__}/docs"
     )
 
@@ -91,7 +103,7 @@ with app.setup(hide_code=True):
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    # Spacecraft Operations Challenge
+    # Spacecraft Autonomy Challenge
 
     Your solution is the `submission/` directory.
     The entry point is the `MyStrategy` class in `submission/strategy.py`,
@@ -153,7 +165,7 @@ def _():
         if issubclass(annotation, enum.Enum)
     ]
     _figure = mo.image(
-        importlib.resources.files("spacecraft_ops_challenge")
+        importlib.resources.files("spacecraft_autonomy_challenge")
         / "figures"
         / "spacecraft-geometry.svg",
         alt="Two thrusters offset from the center of mass "
@@ -586,7 +598,7 @@ def _(prepare_button):
         mo.md(
             """
             Pack the `submission/` directory and `pyproject.toml` as they are now,
-            as `uv run spacecraft-ops-challenge pack` does.
+            as `uv run autonomy-challenge pack` does.
             Prepare it again after you change any file.
             """
         ),
@@ -637,7 +649,7 @@ def _(check_button):
         mo.md(
             """
             Evaluate `submission.zip`, packed from the files as they are now,
-            on all public scenarios, as `uv run spacecraft-ops-challenge check` does:
+            on all public scenarios, as `uv run autonomy-challenge check` does:
             each scenario runs your strategy in a new Python process,
             and the packages of `pyproject.toml` that are missing are installed
             for this check only.
