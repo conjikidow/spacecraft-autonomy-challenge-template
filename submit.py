@@ -8,9 +8,10 @@
 The archive is `submission.zip` as `autonomy-challenge pack` builds it: the
 `submission/` directory and `pyproject.toml`. The server address and token come from
 `--server` and `--token`, or from the environment variables `EVALUATION_SERVER_URL`
-and `EVALUATION_SERVER_TOKEN`. You are identified by `git config user.email` and
-`git config user.name` unless `--participant-id` and `--participant-name` say
-otherwise.
+and `EVALUATION_SERVER_TOKEN`; an address without a path, such as
+`http://<host>:<port>`, means its API at `http://<host>:<port>/api/v1`. You are
+identified by `git config user.email` and `git config user.name` unless
+`--participant-id` and `--participant-name` say otherwise.
 
 The server speaks a small HTTP protocol, relative to its base URL:
 
@@ -54,6 +55,10 @@ TOKEN_VARIABLE = "EVALUATION_SERVER_TOKEN"
 PENDING_STATUSES = frozenset({"queued", "running"})
 UPLOAD_BYTES_PER_S = 100_000
 """Slowest upload rate to allow for, which extends the timeout of large submissions."""
+API_URL_HINT = (
+    "check that the server address is the API URL that the organizers gave you, "
+    "such as http://<host>:<port>/api/v1"
+)
 
 
 class ServerError(Exception):
@@ -94,6 +99,8 @@ class EvaluationServer:
             raise ServerError(
                 f"the server address {url!r} must start with http:// or https://"
             )
+        if not parts.path.strip("/"):  # the server root: its API is under /api/v1
+            url = f"{parts.scheme}://{parts.netloc}/api/v1"
         self.url = url.rstrip("/") + "/"
         self.token = (token or "").strip() or None
         self.timeout_s = timeout_s
@@ -117,21 +124,31 @@ class EvaluationServer:
         timeout_s = self.timeout_s + len(data or b"") / UPLOAD_BYTES_PER_S
         try:
             with urllib.request.urlopen(request, timeout=timeout_s) as response:
-                answer = json.load(response)
+                body = response.read()
         except urllib.error.HTTPError as error:
             try:
                 detail = json.load(error).get("detail")
             except (ValueError, AttributeError):
                 detail = None
-            raise ServerError(
-                f"the server answered {error.code}: {detail or error.reason}",
-                error.code,
-            ) from None
+            if error.code == 404 and (detail is None or detail == "Not Found"):
+                # no such route: the address is likely not the API URL
+                target = url.partition("?")[0]
+                message = f"the server answered 404 at {target}; {API_URL_HINT}"
+            else:
+                message = f"the server answered {error.code}: {detail or error.reason}"
+            raise ServerError(message, error.code) from None
         except (urllib.error.URLError, OSError) as error:
             reason = getattr(error, "reason", error)
             raise ServerError(f"cannot reach {self.url}: {reason}") from None
         except (http.client.HTTPException, ValueError) as error:
             raise ServerError(f"the server sent an invalid answer: {error!r}") from None
+        try:
+            answer = json.loads(body)
+        except ValueError:
+            raise ServerError(
+                f"{url.partition('?')[0]} answered {response.status} with "
+                f"{response.headers.get_content_type()}, not JSON; {API_URL_HINT}"
+            ) from None
         if not isinstance(answer, dict):
             raise ServerError("the server sent an invalid answer: not a JSON object")
         return answer

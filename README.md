@@ -80,7 +80,9 @@ It prints the scores, a summary, and a table of the cases.
 
 ## Submitting to an Evaluation Server
 
-If your event provides an evaluation server, the organizers give you its URL and, if it needs one, a token:
+If your event provides an evaluation server, the organizers give you the URL of its API, such as `http://<host>:<port>/api/v1`,
+and, if it needs one, a token.
+A URL without a path, such as `http://<host>:<port>`, is taken as `http://<host>:<port>/api/v1`.
 
 ```sh
 export EVALUATION_SERVER_URL=<URL>

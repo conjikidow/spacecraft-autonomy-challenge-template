@@ -689,6 +689,7 @@ def _():
             "url": mo.ui.text(
                 value=os.environ.get(URL_VARIABLE, ""),
                 label="Server URL",
+                placeholder="http://<host>:<port>/api/v1",
                 full_width=True,
             ),
             "token": mo.ui.text(
