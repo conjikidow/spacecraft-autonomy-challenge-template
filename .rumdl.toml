@@ -5,7 +5,7 @@ extend-enable = ["MD060", "MD070", "MD080", "MD083", "MD084", "MD087", "MD091", 
 line-length = 120
 
 [MD044]
-names = ["Python", "Ruff", "marimo", "molab"]
+names = ["Python", "Ruff", "marimo"]
 whole-words = true
 
 [MD060]

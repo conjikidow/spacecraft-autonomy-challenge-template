@@ -7,7 +7,6 @@ with app.setup(hide_code=True):
     import contextlib
     import dataclasses
     import enum
-    import hashlib
     import importlib
     import importlib.abc
     import importlib.machinery
@@ -22,15 +21,33 @@ with app.setup(hide_code=True):
     import zipfile
     from pathlib import Path
 
-    import anywidget
     import marimo as mo
-    import traitlets
     from spacecraft_ops_challenge import Commander, Strategy, Telemetry, __version__
     from spacecraft_ops_challenge.challenge import problem, scenario, scenario_names
     from spacecraft_ops_challenge.commands import Command
     from spacecraft_ops_challenge.evaluation import evaluate
+    from spacecraft_ops_challenge.judge.dependencies import DependencyError
+    from spacecraft_ops_challenge.judge.judging import check_submission
+    from spacecraft_ops_challenge.judge.reporting import (
+        EvaluationResult,
+        ResultFormatError,
+    )
+    from spacecraft_ops_challenge.judge.submission import (
+        SubmissionError,
+        build_submission,
+    )
+    from spacecraft_ops_challenge.judge.views import dependencies_view, results_view
     from spacecraft_ops_challenge.results import TerminationReason
     from spacecraft_ops_challenge.simulation import run
+
+    from submit import (
+        TOKEN_VARIABLE,
+        URL_VARIABLE,
+        EvaluationServer,
+        ServerError,
+        git_config,
+        receipt_lines,
+    )
 
     REPOSITORY_DIR = Path(__file__).resolve().parent
     SUBMISSION_DIR = (REPOSITORY_DIR / "submission").resolve()
@@ -40,8 +57,6 @@ with app.setup(hide_code=True):
         "https://github.com/conjikidow/spacecraft-operations-challenge-core"
         f"/blob/v{__version__}/docs"
     )
-    PRACTICE_APP_URL = "https://molab.marimo.io/notebooks/nb_siSWksaqMjVxazAVfjNvYq/app"
-    PRACTICE_MAX_BYTES = 100_000_000
 
     FIELD_UNITS = {
         "_nms_per_s": "Nms/s",
@@ -78,13 +93,17 @@ def _():
     configuration, data) also belongs under `submission/`.
 
     1. Edit `submission/strategy.py` in the **Strategy** editor below.
-       Add or edit any other file under `submission/` from the Files panel.
+       Add or edit any other file under `submission/` from the Files panel
+       or your own editor, and add packages with `uv add`.
     2. Select a public scenario and click **Run**.
        Every run loads the current files from disk,
        so there is no need to restart this notebook.
     3. Inspect the result and iterate.
-    4. Send the submission to the **Practice evaluation** to run it on hidden cases.
-    5. Prepare and download `submission.zip` for the final submission.
+    4. Click **Check** to evaluate `submission.zip` on all public scenarios,
+       the way an evaluation server runs it.
+    5. If your event provides an evaluation server, submit for a practice evaluation
+       on hidden cases under **Evaluation server**, and submit your final version
+       there as well.
     """)
 
 
@@ -548,42 +567,6 @@ def _(load_error, result, strategy_output):
     mo.vstack(_sections)
 
 
-@app.function(hide_code=True)
-def build_submission_zip():
-    """Zip the current `submission/` directory, keeping it as the top-level folder.
-
-    Python bytecode caches are left out.
-    Raises `ValueError` for a missing strategy file or a symbolic link, which is
-    rejected instead of followed, and `OSError` for a file that cannot be read.
-    """
-    if (REPOSITORY_DIR / "submission").is_symlink():
-        raise ValueError("submission/ is a symbolic link; replace it with a directory")
-    if not STRATEGY_FILE.is_file():
-        raise ValueError(f"submission/{STRATEGY_FILE.name} is missing")
-
-    def _raise(error):
-        raise error
-
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(
-        buffer, "w", zipfile.ZIP_DEFLATED, strict_timestamps=False
-    ) as archive:
-        for directory, dirnames, filenames in os.walk(SUBMISSION_DIR, onerror=_raise):
-            directory = Path(directory)
-            for name in sorted([*dirnames, *filenames]):
-                path = directory / name
-                relative = path.relative_to(SUBMISSION_DIR)
-                if path.is_symlink():
-                    raise ValueError(
-                        f"submission/{relative.as_posix()} is a symbolic link; "
-                        "replace it with a regular file or directory"
-                    )
-                if path.is_file() and path.suffix not in (".pyc", ".pyo"):
-                    archive.write(path, f"submission/{relative.as_posix()}")
-            dirnames[:] = sorted(name for name in dirnames if name != "__pycache__")
-    return buffer.getvalue()
-
-
 @app.cell(hide_code=True)
 def _():
     prepare_button = mo.ui.run_button(label="Prepare submission.zip")
@@ -596,7 +579,8 @@ def _(prepare_button):
         mo.md("## Prepare submission"),
         mo.md(
             """
-            Pack the `submission/` directory as it is now.
+            Pack the `submission/` directory and `pyproject.toml` as they are now,
+            as `uv run spacecraft-ops-challenge pack` does.
             Prepare it again after you change any file.
             """
         ),
@@ -604,8 +588,8 @@ def _(prepare_button):
     ]
     if prepare_button.value:
         try:
-            _data = build_submission_zip()
-        except (ValueError, OSError) as error:
+            _data = build_submission(REPOSITORY_DIR)
+        except (SubmissionError, OSError) as error:
             _sections.append(
                 mo.callout(
                     str(error), kind="danger", title="Could not prepare submission.zip"
@@ -634,181 +618,151 @@ def _(prepare_button):
     mo.vstack(_sections)
 
 
-@app.class_definition(hide_code=True)
-class PracticeBridge(anywidget.AnyWidget):
-    """Opens the practice app in a new tab and posts the packed submission to it.
+@app.cell(hide_code=True)
+def _():
+    check_button = mo.ui.run_button(label="Check", kind="success")
+    return (check_button,)
 
-    The button opens the tab, or focuses it if it is still open, and sends a `pack`
-    message with a new request number; Python answers with a `packed` message that
-    carries the archive as a buffer. The practice app announces when it is ready to
-    receive, and the archive is sent again whenever it announces itself, for example
-    after a reload. The practice app confirms each archive it accepts.
-    """
 
-    _esm = """
-    const PROTOCOL = "spacecraft-ops-challenge-practice";
-    const VERSION = 1;
-    const TAB_NAME = "spacecraft-ops-challenge-practice";
-
-    function render({ model, el }) {
-      const button = document.createElement("button");
-      button.className = "practice-bridge-button";
-      button.textContent = "Open practice evaluation";
-      const status = document.createElement("p");
-      el.append(button, status);
-      let tab = null;
-      let practice = null;
-      let pending = null;
-      let packed = null;
-      function send() {
-        if (packed === null || !packed.archive?.byteLength) {
-          return;
-        }
-        if (practice === null) {
-          status.textContent =
-            `${packed.message} Waiting for the practice app to load. ` +
-            "If it does not receive the submission, upload submission.zip there.";
-          return;
-        }
-        const archive = packed.archive;
-        const start = archive.byteOffset;
-        const data = archive.buffer.slice(start, start + archive.byteLength);
-        const message = {
-          protocol: PROTOCOL,
-          version: VERSION,
-          type: "submission",
-          request: pending,
-          archive: data,
-        };
-        practice.source.postMessage(message, practice.origin, [data]);
-        status.textContent =
-          `${packed.message} Sending to the practice app. ` +
-          "If it does not receive the submission, upload submission.zip there.";
-      }
-      function onPacked(content, buffers) {
-        if (content?.type !== "packed" || content.request !== pending) {
-          return;
-        }
-        packed = { message: content.message, archive: buffers[0] ?? null };
-        status.textContent = packed.message;
-        send();
-      }
-      function onMessage(event) {
-        const message = event.data;
-        if (
-          tab === null ||
-          event.source?.top !== tab ||
-          event.origin === "null" ||
-          message?.protocol !== PROTOCOL ||
-          message.version !== VERSION
-        ) {
-          return;
-        }
-        if (message.type === "ready") {
-          practice = { source: event.source, origin: event.origin };
-          send();
-        } else if (
-          message.type === "received" &&
-          event.source === practice?.source &&
-          packed !== null &&
-          message.request === pending
-        ) {
-          status.textContent =
-            `${packed.message} Received by the practice app: click Run there.`;
-        }
-      }
-      button.addEventListener("click", () => {
-        if (tab === null || tab.closed) {
-          tab = window.open(model.get("url"), TAB_NAME);
-          practice = null;
-        }
-        if (tab === null) {
-          status.textContent =
-            "The browser blocked the new tab. Allow pop-ups for this page.";
-          return;
-        }
-        tab.focus();
-        pending = Date.now();
-        packed = null;
-        status.textContent = "Packing submission/.";
-        model.send({ type: "pack", request: pending });
-      });
-      window.addEventListener("message", onMessage);
-      model.on("msg:custom", onPacked);
-      return () => {
-        window.removeEventListener("message", onMessage);
-        model.off("msg:custom", onPacked);
-      };
-    }
-
-    export default { render };
-    """
-    _css = """
-    .practice-bridge-button {
-      padding: 0.25rem 0.75rem;
-      border: 1px solid #15803d;
-      border-radius: 0.375rem;
-      background: #16a34a;
-      color: white;
-      font: inherit;
-      cursor: pointer;
-    }
-    .practice-bridge-button:hover {
-      background: #15803d;
-    }
-    """
-    url = traitlets.Unicode().tag(sync=True)
+@app.cell(hide_code=True)
+def _(check_button):
+    _sections = [
+        mo.md("## Check"),
+        mo.md(
+            """
+            Evaluate `submission.zip`, packed from the files as they are now,
+            on all public scenarios, as `uv run spacecraft-ops-challenge check` does:
+            each scenario runs your strategy in a new Python process,
+            and the packages of `pyproject.toml` that are missing are installed
+            for this check only.
+            """
+        ),
+        check_button,
+    ]
+    if check_button.value:
+        try:
+            with mo.status.spinner(
+                title="Checking on the public scenarios"
+            ) as _spinner:
+                _evaluation = check_submission(
+                    build_submission(REPOSITORY_DIR),
+                    on_status=lambda message: _spinner.update(subtitle=message),
+                    on_case_done=lambda outcome: _spinner.update(
+                        subtitle=f"{outcome.case_id}: {outcome.status.value}"
+                    ),
+                )
+        except (SubmissionError, DependencyError, OSError) as error:
+            _sections.append(
+                mo.callout(str(error), kind="danger", title="Could not check")
+            )
+        else:
+            _result = EvaluationResult.from_evaluation(_evaluation)
+            _sections += [
+                results_view(_result),
+                mo.accordion({"Packages": dependencies_view(_result.dependencies)}),
+            ]
+    mo.vstack(_sections)
 
 
 @app.cell(hide_code=True)
 def _():
-    def _pack(widget, content, buffers):
-        if content.get("type") != "pack":
-            return
-        data = b""
-        try:
-            archive = build_submission_zip()
-        except (ValueError, OSError) as error:
-            message = f"Could not pack submission.zip: {error}"
-        else:
-            if len(archive) > PRACTICE_MAX_BYTES:
-                message = (
-                    f"submission.zip is {len(archive):,} bytes, more than the "
-                    f"{PRACTICE_MAX_BYTES:,} bytes that the practice app accepts."
-                )
-            else:
-                data = archive
-                message = (
-                    f"Packed submission.zip: {len(data):,} bytes, "
-                    f"SHA-256 {hashlib.sha256(data).hexdigest()[:12]}."
-                )
-        widget.send(
-            {"type": "packed", "request": content.get("request"), "message": message},
-            buffers=[data] if data else None,
-        )
-
-    _bridge = PracticeBridge(url=PRACTICE_APP_URL)
-    _bridge.on_msg(_pack)
-    # Displayed by the cell that creates it, which never runs again, so that the
-    # widget keeps its reference to the practice tab.
-    mo.vstack(
-        [
-            mo.md("## Practice evaluation"),
-            mo.md(
-                f"""
-                Evaluate the `submission/` directory as it is now on hidden practice
-                cases. The button opens the practice app in a new tab and sends the
-                submission to it; click **Run** there.
-                Click the button again after you change any file:
-                the submission is sent to the same tab while it is open.
-                If no tab opens, allow pop-ups for this page,
-                or open the [practice app]({PRACTICE_APP_URL}) yourself
-                and upload `submission.zip` from **Prepare submission**.
-                """
+    server_form = mo.ui.dictionary(
+        {
+            "url": mo.ui.text(
+                value=os.environ.get(URL_VARIABLE, ""),
+                label="Server URL",
+                full_width=True,
             ),
-            mo.ui.anywidget(_bridge),
-        ]
+            "token": mo.ui.text(
+                value=os.environ.get(TOKEN_VARIABLE, ""),
+                kind="password",
+                label="Token (if any)",
+                full_width=True,
+            ),
+            "participant_id": mo.ui.text(
+                value=git_config("user.email") or "",
+                label="Your id (git config user.email)",
+                full_width=True,
+            ),
+            "participant_name": mo.ui.text(
+                value=git_config("user.name") or "",
+                label="Your name (git config user.name)",
+                full_width=True,
+            ),
+        }
     )
+    practice_button = mo.ui.run_button(label="Submit for practice", kind="success")
+    final_button = mo.ui.run_button(label="Submit as final", kind="warn")
+    return final_button, practice_button, server_form
+
+
+@app.cell(hide_code=True)
+def _(final_button, practice_button, server_form):
+    _sections = [
+        mo.md("## Evaluation server"),
+        mo.md(
+            f"""
+            If your event provides an evaluation server, submit `submission.zip`,
+            packed from the files as they are now, to it.
+            A **practice** submission runs on hidden cases and shows the result here.
+            A **final** submission is stored and answered with a receipt.
+            The server URL and token can also come from the environment variables
+            `{URL_VARIABLE}` and `{TOKEN_VARIABLE}`.
+            """
+        ),
+        server_form,
+        mo.hstack([practice_button, final_button], justify="start", gap=1),
+    ]
+    if practice_button.value or final_button.value:
+        _final = bool(final_button.value)
+        _form = server_form.value
+        try:
+            if not (
+                _form["participant_id"].strip() and _form["participant_name"].strip()
+            ):
+                raise ServerError("enter your id and your name")
+            _server = EvaluationServer(_form["url"], _form["token"])
+            _receipt = _server.submit(
+                build_submission(REPOSITORY_DIR),
+                _form["participant_id"].strip(),
+                _form["participant_name"].strip(),
+                final=_final,
+            )
+            _document = _receipt
+            if not _final:
+                with mo.status.spinner(
+                    title="Waiting for the practice evaluation"
+                ) as _spinner:
+                    _document = _server.wait(
+                        _receipt["id"],
+                        on_status=lambda status: _spinner.update(subtitle=status),
+                    )
+        except (ServerError, SubmissionError, OSError) as error:
+            _sections.append(
+                mo.callout(str(error), kind="danger", title="Could not submit")
+            )
+        else:
+            _sections.append(
+                mo.callout(
+                    mo.plain_text("\n".join(receipt_lines(_document))),
+                    kind="success" if _document.get("status") != "failed" else "danger",
+                    title="Final submission received" if _final else "Submission",
+                )
+            )
+            if _document.get("status") == "failed":
+                _sections.append(mo.md(f"**Not evaluated:** {_document.get('error')}"))
+            elif _document.get("result") is not None:
+                try:
+                    _sections.append(
+                        results_view(EvaluationResult.from_dict(_document["result"]))
+                    )
+                except ResultFormatError as error:
+                    _sections.append(
+                        mo.callout(
+                            str(error), kind="danger", title="Invalid result document"
+                        )
+                    )
+    mo.vstack(_sections)
     return
 
 
