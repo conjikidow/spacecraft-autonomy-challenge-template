@@ -56,18 +56,58 @@ uv run spacecraft-ops-challenge run submission/strategy.py:MyStrategy --scenario
 uv add numpy
 ```
 
+## ノートブックでの作業
+
+```sh
+uv run marimo edit app.py
+```
+
+ノートブックでは，宇宙機，ミッション，戦略 API を確認しながら `submission/strategy.py` を編集し，公開シナリオで実行し，提出物を確認して，評価サーバーに提出できます。
+
+## 提出物の確認
+
+```sh
+uv run spacecraft-ops-challenge check
+```
+
+このコマンドは，`submission/` と `pyproject.toml` をメモリ上で `submission.zip` にまとめ，評価サーバーと同じ方法ですべての公開シナリオで評価します。
+各シナリオでは戦略を新しい Python プロセスで起動し，`pyproject.toml` のパッケージのうち足りないものは，この確認のためだけにインストールします。
+得点，要約，ケースごとの表を出力します。
+`uv run spacecraft-ops-challenge pack` は，評価せずに `submission.zip` をファイルに書き出します。
+
+## 評価サーバーへの提出
+
+イベントに評価サーバーがある場合は，運営者からその URL と，必要ならトークンが伝えられます。
+
+```sh
+export EVALUATION_SERVER_URL=<URL>
+export EVALUATION_SERVER_TOKEN=<トークン>
+uv run submit.py            # 非公開ケースでの練習評価：結果を待って表示する
+uv run submit.py --final    # 最終提出：受付票を表示する
+```
+
+Windows の場合や環境変数を使わない場合は，`--server <URL>` と `--token <トークン>` を指定してください。
+練習評価の結果を待つのをやめても，評価はサーバー上で続きます。
+あとから `uv run submit.py --status <ID>` で確認できます。
+提出者は `git config user.email` と `git config user.name` で識別されます。
+`--participant-id` と `--participant-name` で上書きでき，`uv run submit.py --help` ですべてのオプションを確認できます。
+ノートブックの **Evaluation server** セクションでも同じことができます。
+
 ## ドキュメント
 
 API とチャレンジについては，core リポジトリのドキュメントを参照してください。
 リンク先は，このテンプレートが使用している core のバージョンのドキュメントです。
 
-- [戦略の書き方](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
-- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/timeline.ja.md)：コマンドの種類と順序規則
-- [宇宙機モデル](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
-- [シミュレーション](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/simulation.ja.md)：イベントの順序と終了条件
-- [チャレンジ問題](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
-- [評価](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
-- [コマンドラインツール](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/README.ja.md#コマンドラインツール)：オプションと終了ステータス
+- [戦略の書き方](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
+- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/timeline.ja.md)：コマンドの種類と順序規則
+- [宇宙機モデル](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
+- [シミュレーション](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/simulation.ja.md)：イベントの順序と終了条件
+- [チャレンジ問題](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
+- [評価](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
+- [コマンドラインツール](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/README.ja.md#コマンドラインツール)：`run`，`pack`，`check` のオプションと終了ステータス
+- [提出アーカイブ](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/submission.ja.md)：`submission.zip` の内容
+- [参加者のパッケージ](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/dependencies.ja.md)：`pyproject.toml` のパッケージの再現方法
+- [得点](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/scoring.ja.md)：評価ケースと `Suite` の得点の計算方法
 
 ## ライセンス
 

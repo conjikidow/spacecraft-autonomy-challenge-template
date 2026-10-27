@@ -56,17 +56,59 @@ Add the Python packages you need with uv, for example:
 uv add numpy
 ```
 
+## Working in the Notebook
+
+```sh
+uv run marimo edit app.py
+```
+
+The notebook shows the spacecraft, the mission, and the strategy API,
+edits `submission/strategy.py`, runs it on a public scenario, checks the submission,
+and submits it to an evaluation server.
+
+## Checking Your Submission
+
+```sh
+uv run spacecraft-ops-challenge check
+```
+
+packs `submission/` and `pyproject.toml` into `submission.zip` in memory and evaluates it on all public scenarios
+the way an evaluation server runs it: each scenario starts your strategy in a new Python process,
+and packages of `pyproject.toml` that are missing are installed for the check only.
+It prints the scores, a summary, and a table of the cases.
+`uv run spacecraft-ops-challenge pack` writes `submission.zip` to a file without evaluating it.
+
+## Submitting to an Evaluation Server
+
+If your event provides an evaluation server, the organizers give you its URL and, if it needs one, a token:
+
+```sh
+export EVALUATION_SERVER_URL=<URL>
+export EVALUATION_SERVER_TOKEN=<token>
+uv run submit.py            # practice evaluation on hidden cases: waits for the result and shows it
+uv run submit.py --final    # final submission: shows the receipt
+```
+
+On Windows, or instead of the environment variables, pass `--server <URL>` and `--token <token>`.
+If you stop waiting for a practice evaluation, it continues on the server; `uv run submit.py --status <id>` shows it later.
+You are identified by `git config user.email` and `git config user.name`;
+`--participant-id` and `--participant-name` override them, and `uv run submit.py --help` lists all options.
+The **Evaluation server** section of the notebook does the same.
+
 ## Documentation
 
 The core repository documents the API and the challenge, at the commit this template uses:
 
-- [Writing a Strategy](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/strategy.md): lifecycle, mission brief, and commander
-- [Commands and Timeline](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/timeline.md): command types and ordering rules
-- [Spacecraft Model](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/spacecraft-model.md): state, dynamics, and telemetry
-- [Simulation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/simulation.md): order of events and termination
-- [Challenge Problem](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/challenge.md): the problem and its public scenarios
-- [Evaluation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/docs/evaluation.md): the metrics printed after a run
-- [Command-Line Runner](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.1.2/README.md#command-line-runner): options and exit status
+- [Writing a Strategy](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/strategy.md): lifecycle, mission brief, and commander
+- [Commands and Timeline](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/timeline.md): command types and ordering rules
+- [Spacecraft Model](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/spacecraft-model.md): state, dynamics, and telemetry
+- [Simulation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/simulation.md): order of events and termination
+- [Challenge Problem](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/challenge.md): the problem and its public scenarios
+- [Evaluation](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/evaluation.md): the metrics printed after a run
+- [Command-Line Runner](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/README.md#command-line-runner): options and exit status of `run`, `pack`, and `check`
+- [Submission Archives](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/submission.md): what `submission.zip` contains
+- [Participant Packages](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/dependencies.md): how the packages of `pyproject.toml` are reproduced
+- [Scoring](https://github.com/conjikidow/spacecraft-operations-challenge-core/blob/v0.2.0/docs/scoring.md): how a case and a suite are scored
 
 ## License
 

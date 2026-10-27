@@ -11,7 +11,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "anywidget>=0.11.0",
   "marimo>=0.25.2",
   { include-group = "lint" },
 ]
@@ -34,4 +33,4 @@ extend-select = ["E501"]
 exclude-newer = "3 days"
 
 [tool.uv.sources]
-spacecraft-operations-challenge-core = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core", tag = "v0.1.2" }
+spacecraft-operations-challenge-core = { git = "https://github.com/conjikidow/spacecraft-operations-challenge-core", tag = "v0.2.0" }
