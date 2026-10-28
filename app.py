@@ -525,7 +525,10 @@ def time_series_chart(result):
         (
             "propulsion_temperature_c",
             "Propulsion temperature (°C)",
-            {"max": limits.max_propulsion_temperature_c},
+            {
+                "max": limits.max_propulsion_temperature_c,
+                "min firing": problem.parameters.min_firing_temperature_c,
+            },
         ),
         (
             "wheel_momentum_nms",
