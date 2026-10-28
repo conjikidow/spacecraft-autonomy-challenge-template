@@ -537,12 +537,6 @@ def _(load_error, result, strategy_output):
                 )
             )
         )
-        _sections.append(
-            mo.md(
-                "Declaring completion is not success: "
-                "judge the run from the metrics above."
-            )
-        )
         if _metrics.safety_violations:
             _sections.append(
                 mo.callout(
