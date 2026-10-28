@@ -14,16 +14,22 @@ with app.setup(hide_code=True):
     import importlib.util
     import inspect
     import io
+    import itertools
     import os
     import sys
     import traceback
     import typing
+    import warnings
     import zipfile
     from pathlib import Path
 
+    import altair as alt
     import marimo as mo
     from spacecraft_autonomy_challenge import (
         Commander,
+        PropulsionMode,
+        SetHeater,
+        SetPropulsionMode,
         Strategy,
         Telemetry,
         __version__,
@@ -72,6 +78,8 @@ with app.setup(hide_code=True):
     SUBMISSION_DIR = (REPOSITORY_DIR / "submission").resolve()
     STRATEGY_FILE = SUBMISSION_DIR / "strategy.py"
     STRATEGY_CLASS = "MyStrategy"
+    # Interval at which the run result plots sample the true state.
+    SAMPLE_PERIOD_S = 60.0
     CORE_DOCS_URL = (
         "https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
         f"/blob/v{__version__}/docs"
@@ -492,6 +500,171 @@ def load_strategy():
         raise SubmissionLoadError(f"cannot instantiate {STRATEGY_CLASS}") from error
 
 
+@app.function(hide_code=True)
+def time_series_chart(result):
+    """Chart the true state of a run over time, with the limits it must respect.
+
+    States are sampled once per `SAMPLE_PERIOD_S`, plus the last one. The strip at the
+    bottom shows the propulsion mode and the heater from the executed commands.
+    """
+    problem = result.scenario.problem
+    limits = problem.limits
+    samples = {}
+    for state in result.trajectory:
+        samples.setdefault(state.time_s // SAMPLE_PERIOD_S, state)
+    samples = [*samples.values()]
+    if samples[-1] is not result.trajectory[-1]:
+        samples.append(result.trajectory[-1])
+    panels = [
+        ("delta_v_mps", "Delta-v (m/s)", {"target": problem.target_delta_v_mps}),
+        (
+            "battery_energy_wh",
+            "Battery energy (Wh)",
+            {"min": limits.min_battery_energy_wh},
+        ),
+        (
+            "propulsion_temperature_c",
+            "Propulsion temperature (°C)",
+            {"max": limits.max_propulsion_temperature_c},
+        ),
+        (
+            "wheel_momentum_nms",
+            "Wheel momentum (Nms)",
+            {
+                "max": limits.max_abs_wheel_momentum_nms,
+                "min": -limits.max_abs_wheel_momentum_nms,
+            },
+        ),
+    ]
+    data = alt.InlineData(
+        values=[
+            {
+                "time_s": state.time_s,
+                "time_h": state.time_s / 3600,
+                **{field: getattr(state, field) for field, *_ in panels},
+            }
+            for state in samples
+        ]
+    )
+    x_scale = alt.Scale(domain=[0, problem.time_limit_s / 3600], nice=False)
+    width, line_color, limit_color = 300, "#2a78d6", "#7a7974"
+    hover = alt.selection_point(
+        name="hover",
+        fields=["time_s"],
+        nearest=True,
+        on="pointerover",
+        clear="pointerout",
+        empty=False,
+    )
+    cursor = (
+        alt.Chart()
+        .mark_rule(color=limit_color)
+        .encode(x=alt.X("time_h:Q", scale=x_scale))
+        .transform_filter(hover)
+    )
+
+    def _panel(field, title, references):
+        base = alt.Chart().encode(
+            x=alt.X("time_h:Q", scale=x_scale, title=None),
+            y=alt.Y(f"{field}:Q", title=None),
+        )
+        reference = alt.Chart(
+            alt.InlineData(
+                values=[
+                    {"label": f"{k} {v:g}", "value": v} for k, v in references.items()
+                ]
+            )
+        ).encode(y="value:Q")
+        return alt.layer(
+            reference.mark_rule(color=limit_color, strokeDash=[4, 4]),
+            reference.mark_text(
+                align="left", baseline="bottom", dx=2, dy=-2, color=limit_color
+            ).encode(x=alt.datum(0), text="label:N"),
+            base.mark_line(color=line_color, strokeWidth=2),
+            cursor,
+            base.mark_point(filled=True, color=line_color, size=40).transform_filter(
+                hover
+            ),
+            base.mark_point(opacity=0)
+            .encode(
+                tooltip=[
+                    alt.Tooltip("time_s:Q", title="Time (s)", format=".0f"),
+                    alt.Tooltip(f"{field}:Q", title=title, format=".4~f"),
+                ]
+            )
+            .add_params(hover),
+        ).properties(
+            title=alt.Title(title, anchor="start", fontSize=12),
+            width=width,
+            height=80,
+        )
+
+    initial = result.trajectory[0]
+    changes = {
+        "Mode": [(0.0, initial.propulsion_mode.value)],
+        "Heater": [(0.0, "Heater on" if initial.heater_on else None)],
+    }
+    for scheduled in result.executed_commands:
+        match scheduled.command:
+            case SetPropulsionMode(mode=mode):
+                changes["Mode"].append((scheduled.time_s, mode.value))
+            case SetHeater(on=on):
+                changes["Heater"].append(
+                    (scheduled.time_s, "Heater on" if on else None)
+                )
+    bars = [
+        {"channel": channel, "state": state, "start_s": start_s, "end_s": end_s}
+        for channel, values in changes.items()
+        for (start_s, state), (end_s, _) in itertools.pairwise(
+            [*values, (result.final_state.time_s, None)]
+        )
+        if state not in (None, PropulsionMode.OFF.value) and end_s > start_s
+    ]
+    strip = (
+        alt.Chart(alt.InlineData(values=bars))
+        .transform_calculate(start_h="datum.start_s / 3600", end_h="datum.end_s / 3600")
+        .mark_bar()
+        .encode(
+            x=alt.X("start_h:Q", scale=x_scale, title="Time (h)"),
+            x2="end_h:Q",
+            y=alt.Y("channel:N", scale=alt.Scale(domain=[*changes]), title=None),
+            color=alt.Color(
+                "state:N",
+                scale=alt.Scale(
+                    domain=[
+                        PropulsionMode.THRUSTER_1.value,
+                        PropulsionMode.THRUSTER_2.value,
+                        "Heater on",
+                    ],
+                    range=[line_color, "#eb6834", "#1baf7a"],
+                ),
+                legend=alt.Legend(title=None, orient="bottom"),
+            ),
+            tooltip=[
+                alt.Tooltip("state:N", title="State"),
+                alt.Tooltip("start_s:Q", title="From (s)", format=".1f"),
+                alt.Tooltip("end_s:Q", title="To (s)", format=".1f"),
+            ],
+        )
+    )
+    # All panels share the hover selection; altair merges it and warns about that.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Automatically deduplicated", UserWarning)
+        return alt.vconcat(
+            *(_panel(*panel) for panel in panels),
+            alt.layer(strip, cursor).properties(
+                title=alt.Title(
+                    "Propulsion mode and heater (blank: off)",
+                    anchor="start",
+                    fontSize=12,
+                ),
+                width=width,
+                height=44,
+            ),
+            data=data,
+        )
+
+
 @app.cell(hide_code=True)
 def _(run_button, scenario_picker):
     load_error = ""
@@ -576,6 +749,23 @@ def _(load_error, result, run_error, strategy_output):
                     ["| Metric | Value |", "|:---|:---|"]
                     + [f"| {label} | {value} |" for label, value in _rows]
                 )
+            )
+        )
+        _sections.append(
+            mo.accordion(
+                {
+                    "Time series": lambda: mo.vstack(
+                        [
+                            mo.md(
+                                "True state from the simulator, sampled every "
+                                f"{SAMPLE_PERIOD_S:g} s. "
+                                "Hover for values."
+                            ),
+                            time_series_chart(result),
+                        ]
+                    )
+                },
+                lazy=True,
             )
         )
         if _metrics.safety_violations:
