@@ -740,7 +740,14 @@ def _(run_button, scenario_picker):
 
 
 @app.cell(hide_code=True)
-def _(load_error, result, run_button, run_error, scenario_picker, strategy_output):
+def _(
+    load_error,
+    result,
+    run_button,
+    run_error,
+    scenario_picker,
+    strategy_output,
+):
     _controls = [
         mo.md("## Try a scenario"),
         mo.md("One public scenario, run in this notebook, with full details."),
