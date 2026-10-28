@@ -366,7 +366,7 @@ jobs:
           enable-cache: false
 
       - name: Install Ruff
-        run: uv sync --only-group=lint --locked
+        run: uv sync --only-group=dev --locked
 
       - name: Format Python
         run: uv run --no-sync ruff format .
@@ -410,7 +410,7 @@ jobs:
           enable-cache: false
 
       - name: Install Ruff
-        run: uv sync --only-group=lint --locked
+        run: uv sync --only-group=dev --locked
 
       - name: Lint Python
         run: uv run --no-sync ruff check --output-format=github .

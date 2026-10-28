@@ -854,13 +854,13 @@ dependencies = [
 name = "spacecraft-autonomy-challenge-submission"
 version = "1.0.0"
 source = { virtual = "." }
-default-groups = ["lint", "notebook"]
+default-groups = ["dev", "notebook"]
 dependencies = [
     { name = "spacecraft-autonomy-challenge-core" },
 ]
 
 [package.dev-dependencies]
-lint = [
+dev = [
     { name = "ruff" },
 ]
 notebook = [
@@ -872,7 +872,7 @@ notebook = [
 requires-dist = [{ name = "spacecraft-autonomy-challenge-core", git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v1.3.1" }]
 
 [package.metadata.requires-dev]
-lint = [{ name = "ruff", specifier = "==0.17.1" }]
+dev = [{ name = "ruff", specifier = "==0.17.1" }]
 notebook = [
     { name = "altair", specifier = ">=6.3.0" },
     { name = "marimo", specifier = ">=0.25.2" },

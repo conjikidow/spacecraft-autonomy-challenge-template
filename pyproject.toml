@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-lint = [
+dev = [
   "ruff==0.17.1",
 ]
 notebook = [
@@ -30,7 +30,7 @@ extend-select = ["E501"]
 "app.py" = ["PLR1711"]
 
 [tool.uv]
-default-groups = ["lint", "notebook"]
+default-groups = ["dev", "notebook"]
 exclude-newer = "3 days"
 
 [tool.uv.sources]
