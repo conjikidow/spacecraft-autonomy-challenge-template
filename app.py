@@ -209,6 +209,16 @@ def _():
     return
 
 
+@app.cell
+def _():
+    mo.vstack(
+        [
+            mo.md("## Spacecraft"),
+        ]
+    )
+    return
+
+
 @app.cell(hide_code=True)
 def _():
     _telemetry_rows = [
@@ -217,7 +227,7 @@ def _():
     ]
     mo.vstack(
         [
-            mo.md("## Spacecraft"),
+            mo.md("### Telemetry"),
             mo.md(markdown_table(("Telemetry field", "Type", "Unit"), _telemetry_rows)),
         ]
     )
