@@ -105,6 +105,33 @@ with app.setup(hide_code=True):
                 return unit
         return "-"
 
+    def doc_line(obj):
+        """Return an object's docstring on a single line."""
+        return " ".join(inspect.getdoc(obj).split())
+
+    def type_label(annotation):
+        """Return a type's name as inline code."""
+        return f"`{annotation.__name__}`"
+
+    def markdown_table(headers, rows):
+        """Return a Markdown table with left-aligned columns."""
+        return "\n".join(
+            [f"| {' | '.join(headers)} |", "|:---" * len(headers) + "|", *rows]
+        )
+
+    def value_rows(obj, prefix=""):
+        """Return field, value, and unit rows, flattening nested dataclasses."""
+        rows = []
+        for field in dataclasses.fields(obj):
+            value = getattr(obj, field.name)
+            if dataclasses.is_dataclass(value):
+                rows.extend(value_rows(value, f"{prefix}{field.name}."))
+            else:
+                rows.append(
+                    f"| `{prefix}{field.name}` | {value} | {field_unit(field.name)} |"
+                )
+        return rows
+
     class SubmissionLoadError(Exception):
         """Raised when the participant's strategy cannot be imported or instantiated."""
 
@@ -175,29 +202,43 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    def _doc(obj):
-        return " ".join(inspect.getdoc(obj).split())
+    _telemetry_rows = [
+        f"| `{field.name}` | {type_label(field.type)} | {field_unit(field.name)} |"
+        for field in dataclasses.fields(Telemetry)
+    ]
+    mo.vstack(
+        [
+            mo.md("## Spacecraft"),
+            mo.md(markdown_table(("Telemetry field", "Type", "Unit"), _telemetry_rows)),
+        ]
+    )
+    return
 
-    def _type(annotation):
-        return f"`{annotation.__name__}`"
 
+@app.cell(hide_code=True)
+def _():
+    mo.image(
+        importlib.resources.files("spacecraft_autonomy_challenge")
+        / "figures"
+        / "spacecraft-geometry.svg",
+        alt="Two thrusters offset from the center of mass "
+        "and a single-axis reaction wheel",
+        width=480,
+        style={"min-width": "0"},
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _():
     def _arguments(command):
         fields = dataclasses.fields(command)
         return ", ".join(
-            f"`{field.name}`:&nbsp;{_type(field.type)}" for field in fields
+            f"`{field.name}`:&nbsp;{type_label(field.type)}" for field in fields
         )
 
-    def _table(headers, rows):
-        return "\n".join(
-            [f"| {' | '.join(headers)} |", "|:---" * len(headers) + "|", *rows]
-        )
-
-    _telemetry_rows = [
-        f"| `{field.name}` | {_type(field.type)} | {field_unit(field.name)} |"
-        for field in dataclasses.fields(Telemetry)
-    ]
     _command_rows = [
-        f"| `{command.__name__}` | {_arguments(command) or '-'} | {_doc(command)} |"
+        f"| `{command.__name__}` | {_arguments(command) or '-'} | {doc_line(command)} |"
         for command in typing.get_args(Command)
     ]
     _types = [field.type for field in dataclasses.fields(Telemetry)] + [
@@ -212,37 +253,10 @@ def _():
         for annotation in dict.fromkeys(_types)
         if issubclass(annotation, enum.Enum)
     ]
-    _figure = mo.image(
-        importlib.resources.files("spacecraft_autonomy_challenge")
-        / "figures"
-        / "spacecraft-geometry.svg",
-        alt="Two thrusters offset from the center of mass "
-        "and a single-axis reaction wheel",
-        width=480,
-        style={"min-width": "0"},
-    )
     mo.vstack(
         [
-            mo.md("## Spacecraft"),
-            mo.vstack(
-                [
-                    mo.hstack(
-                        [
-                            mo.md(
-                                _table(
-                                    ("Telemetry field", "Type", "Unit"), _telemetry_rows
-                                )
-                            ).style(min_width="max-content"),
-                            _figure,
-                        ],
-                        justify="start",
-                        align="center",
-                        gap=2,
-                    ),
-                    mo.md(_table(("Command", "Arguments", "Effect"), _command_rows)),
-                ],
-                gap=1.5,
-            ),
+            mo.md("### Commands"),
+            mo.md(markdown_table(("Command", "Arguments", "Effect"), _command_rows)),
             mo.md("\n\n".join(_enum_lines)),
             mo.md(
                 f"Details: [Spacecraft Model]({CORE_DOCS_URL}/spacecraft-model.md), "
@@ -255,21 +269,25 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    def _value_rows(obj, prefix=""):
-        rows = []
-        for field in dataclasses.fields(obj):
-            value = getattr(obj, field.name)
-            if dataclasses.is_dataclass(value):
-                rows.extend(_value_rows(value, f"{prefix}{field.name}."))
-            else:
-                rows.append(
-                    f"| `{prefix}{field.name}` | {value} | {field_unit(field.name)} |"
+    mo.vstack(
+        [
+            mo.md("### Nominal parameters"),
+            mo.md(
+                "The published nominal model (`brief.nominal_parameters`); "
+                "the actual spacecraft may deviate."
+            ),
+            mo.md(
+                markdown_table(
+                    ("Parameter", "Value", "Unit"), value_rows(problem().parameters)
                 )
-        return rows
+            ),
+        ]
+    )
+    return
 
-    def _table(title, rows):
-        return "\n".join([f"| {title} | Value | Unit |", "|:---|:---|:---|", *rows])
 
+@app.cell(hide_code=True)
+def _():
     _problem = problem()
     _goal_rows = [
         f"| `{name}` | {getattr(_problem, name)} | {field_unit(name)} |"
@@ -280,24 +298,17 @@ def _():
             mo.md("## Mission"),
             mo.md("The public problem shared by all scenarios."),
             mo.md(
-                _table(
-                    "Field",
+                markdown_table(
+                    ("Field", "Value", "Unit"),
                     [
                         "| **Initial state** | | |",
-                        *_value_rows(_problem.initial_state),
+                        *value_rows(_problem.initial_state),
                         "| **Goal and timing** | | |",
                         *_goal_rows,
                         "| **Safety limits** | | |",
-                        *_value_rows(_problem.limits),
+                        *value_rows(_problem.limits),
                     ],
                 )
-            ),
-            mo.accordion(
-                {
-                    "Nominal spacecraft parameters": mo.md(
-                        _table("Parameter", _value_rows(_problem.parameters))
-                    )
-                }
             ),
         ]
     )
@@ -306,20 +317,15 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    def _doc(obj):
-        return " ".join(inspect.getdoc(obj).split())
-
     def _call(function):
         parameters = list(inspect.signature(function).parameters)[1:]
         return f"{function.__name__}({', '.join(parameters)})"
 
-    def _table(headers, rows):
-        return "\n".join(
-            [f"| {' | '.join(headers)} |", "|:---" * len(headers) + "|", *rows]
-        )
-
     _contents = {
-        "brief": "Values under **Mission**, e.g. `brief.decision_period_s`",
+        "brief": (
+            "Values under **Mission**, e.g. `brief.decision_period_s`; "
+            "`brief.nominal_parameters` under **Nominal parameters**"
+        ),
         "telemetry": (
             "Fields under **Spacecraft** at the callback time, "
             "e.g. `telemetry.battery_energy_wh`; may differ from the true state"
@@ -329,7 +335,7 @@ def _():
         ),
     }
     _callback_rows = [
-        f"| `{_call(callback)}` | {_doc(callback)} |"
+        f"| `{_call(callback)}` | {doc_line(callback)} |"
         for callback in (Strategy.initialize, Strategy.update)
     ]
     _argument_rows = [
@@ -339,7 +345,7 @@ def _():
     ]
     _commander_rows = [
         f"| `{name if isinstance(member, property) else _call(member)}` "
-        f"| {_doc(member)} |"
+        f"| {doc_line(member)} |"
         for name, member in vars(Commander).items()
         if not name.startswith("_")
     ]
@@ -348,9 +354,15 @@ def _():
             mo.md("## Strategy API"),
             mo.vstack(
                 [
-                    mo.md(_table(("Callback", "When"), _callback_rows)),
-                    mo.md(_table(("Argument", "Type", "Content"), _argument_rows)),
-                    mo.md(_table(("Commander member", "Behavior"), _commander_rows)),
+                    mo.md(markdown_table(("Callback", "When"), _callback_rows)),
+                    mo.md(
+                        markdown_table(("Argument", "Type", "Content"), _argument_rows)
+                    ),
+                    mo.md(
+                        markdown_table(
+                            ("Commander member", "Behavior"), _commander_rows
+                        )
+                    ),
                 ],
                 gap=1.5,
             ),
