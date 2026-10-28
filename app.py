@@ -211,13 +211,23 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
+    mo.vstack(
+        [
+            mo.md("## Spacecraft"),
+        ]
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _():
     _telemetry_rows = [
         f"| `{field.name}` | {type_label(field.type)} | {field_unit(field.name)} |"
         for field in dataclasses.fields(Telemetry)
     ]
     mo.vstack(
         [
-            mo.md("## Spacecraft"),
+            mo.md("### Telemetry"),
             mo.md(markdown_table(("Telemetry field", "Type", "Unit"), _telemetry_rows)),
         ]
     )
@@ -730,7 +740,14 @@ def _(run_button, scenario_picker):
 
 
 @app.cell(hide_code=True)
-def _(load_error, result, run_button, run_error, scenario_picker, strategy_output):
+def _(
+    load_error,
+    result,
+    run_button,
+    run_error,
+    scenario_picker,
+    strategy_output,
+):
     _controls = [
         mo.md("## Try a scenario"),
         mo.md("One public scenario, run in this notebook, with full details."),
