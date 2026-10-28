@@ -34,4 +34,4 @@ default-groups = ["dev", "notebook"]
 exclude-newer = "3 days"
 
 [tool.uv.sources]
-spacecraft-autonomy-challenge-core = { git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core", tag = "v1.3.1" }
+spacecraft-autonomy-challenge-core = { git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core", tag = "v1.3.2" }
