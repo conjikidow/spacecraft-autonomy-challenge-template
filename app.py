@@ -581,8 +581,8 @@ def time_series_chart(result):
         return alt.layer(
             reference.mark_rule(color=limit_color, strokeDash=[4, 4]),
             reference.mark_text(
-                align="left", baseline="bottom", dx=2, dy=-2, color=limit_color
-            ).encode(x=alt.datum(0), text="label:N"),
+                align="right", baseline="bottom", dx=-2, dy=-2, color=limit_color
+            ).encode(x=alt.datum(problem.time_limit_s / 3600), text="label:N"),
             base.mark_line(color=line_color, strokeWidth=2),
             cursor,
             base.mark_point(filled=True, color=line_color, size=40).transform_filter(
