@@ -10,12 +10,12 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-  "marimo>=0.25.2",
-  { include-group = "lint" },
-]
 lint = [
   "ruff==0.17.1",
+]
+notebook = [
+  "altair>=6.3.0",
+  "marimo>=0.25.2",
 ]
 
 [tool.ruff]
@@ -30,6 +30,7 @@ extend-select = ["E501"]
 "app.py" = ["PLR1711"]
 
 [tool.uv]
+default-groups = ["lint", "notebook"]
 exclude-newer = "3 days"
 
 [tool.uv.sources]
