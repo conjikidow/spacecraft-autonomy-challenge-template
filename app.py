@@ -731,7 +731,7 @@ def _(run_button, scenario_picker):
 
 @app.cell(hide_code=True)
 def _(load_error, result, run_button, run_error, scenario_picker, strategy_output):
-    _left = [
+    _controls = [
         mo.md("## Try a scenario"),
         mo.md("One public scenario, run in this notebook, with full details."),
         mo.hstack([scenario_picker, run_button], justify="start", gap=1),
@@ -740,19 +740,15 @@ def _(load_error, result, run_button, run_error, scenario_picker, strategy_outpu
     _columns = []
     _sections = []
     if load_error:
-        _left.append(
-            mo.callout(
-                text_view(load_error),
-                kind="danger",
-                title=f"Could not load submission/strategy.py:{STRATEGY_CLASS}",
-            )
+        _body = mo.callout(
+            text_view(load_error),
+            kind="danger",
+            title=f"Could not load submission/strategy.py:{STRATEGY_CLASS}",
         )
     elif run_error:
-        _left.append(
-            mo.callout(text_view(run_error), kind="danger", title="The run stopped")
-        )
+        _body = mo.callout(text_view(run_error), kind="danger", title="The run stopped")
     elif result is None:
-        _left.append(mo.md("Select a scenario and click **Run** to see the result."))
+        _body = mo.md("Select a scenario and click **Run** to see the result.")
     else:
         _metrics = evaluate(result)
         _declared = (
@@ -791,14 +787,14 @@ def _(load_error, result, run_button, run_error, scenario_picker, strategy_outpu
                 f"{_metrics.max_abs_wheel_momentum_nms:.4f} Nms",
             ),
         ]
-        _left.append(
-            mo.md(
-                "\n".join(
-                    ["| Metric | Value |", "|:---|:---|"]
-                    + [f"| {label} | {value} |" for label, value in _rows]
-                )
+        _body = mo.md(
+            "\n".join(
+                ["| Metric | Value |", "|:---|:---|"]
+                + [f"| {label} | {value} |" for label, value in _rows]
             )
         )
+        # The top margin matches that of the heading in marimo's Markdown styles, so
+        # the caption starts level with the heading instead of above it.
         _columns.append(
             mo.vstack(
                 [
@@ -808,7 +804,7 @@ def _(load_error, result, run_button, run_error, scenario_picker, strategy_outpu
                     ),
                     time_series_chart(result),
                 ]
-            ).style(flex="1 1 360px", min_width="320px")
+            ).style(flex="1 1 360px", min_width="320px", margin_top="1.5rem")
         )
         if _metrics.safety_violations:
             _sections.append(
@@ -848,7 +844,12 @@ def _(load_error, result, run_button, run_error, scenario_picker, strategy_outpu
     mo.vstack(
         [
             mo.hstack(
-                [mo.vstack(_left).style(flex="0 1 auto"), *_columns],
+                [
+                    mo.vstack([mo.vstack(_controls), _body], gap=1.5).style(
+                        flex="0 1 auto"
+                    ),
+                    *_columns,
+                ],
                 justify="start",
                 align="start",
                 wrap=True,
