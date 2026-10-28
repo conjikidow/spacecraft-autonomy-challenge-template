@@ -118,15 +118,15 @@ def _():
         ),
         (
             "Practice on hidden scenarios",
-            "hidden scenarios",
+            "hidden practice scenarios",
             "on your event's evaluation server",
             "scores; ranked on the **Leaderboard**",
         ),
         (
             "Submit the final version",
-            "—",
-            "stored on your event's evaluation server",
-            "a receipt",
+            "hidden final scenarios",
+            "later, on your event's evaluation server",
+            "a receipt now",
         ),
     ]
     mo.vstack(
