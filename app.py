@@ -141,16 +141,19 @@ def _():
         [
             mo.md(r"""
             # Spacecraft Autonomy Challenge
-
+            """),
+            mo.md(r"""
             Your solution is the `submission/` directory.
             The entry point is the `MyStrategy` class in `submission/strategy.py`,
             and every other file it needs (Python modules, planning models,
             model weights, configuration, data) also belongs under `submission/`.
-
+            """),
+            mo.md(r"""
             Edit `submission/strategy.py` in the **Strategy** editor below.
             Add or edit any other file under `submission/` from the Files panel
             or your own editor, and add packages with `uv add`.
-
+            """),
+            mo.md(r"""
             Then test and submit it in these sections, each using the current files:
             """),
             mo.md(
@@ -167,6 +170,7 @@ def _():
             ),
         ]
     )
+    return
 
 
 @app.cell(hide_code=True)
@@ -246,6 +250,7 @@ def _():
             ),
         ]
     )
+    return
 
 
 @app.cell(hide_code=True)
@@ -296,6 +301,7 @@ def _():
             ),
         ]
     )
+    return
 
 
 @app.cell(hide_code=True)
@@ -351,6 +357,7 @@ def _():
             mo.md(f"Details: [Writing a Strategy]({CORE_DOCS_URL}/strategy.md)"),
         ]
     )
+    return
 
 
 @app.cell(hide_code=True)
@@ -387,6 +394,7 @@ def _(strategy_editor):
             )
         )
     mo.vstack(_sections)
+    return
 
 
 @app.cell(hide_code=True)
@@ -411,6 +419,7 @@ def _(run_button, scenario_picker):
             mo.md(scenario(scenario_picker.value).description),
         ]
     )
+    return
 
 
 @app.function(hide_code=True)
@@ -806,6 +815,7 @@ def _(load_error, result, run_error, strategy_output):
         )
     )
     mo.vstack(_sections)
+    return
 
 
 @app.cell(hide_code=True)
@@ -848,6 +858,7 @@ def _(prepare_button):
                 )
             )
     mo.vstack(_sections)
+    return
 
 
 @app.cell(hide_code=True)
@@ -895,6 +906,7 @@ def _(check_button):
                 mo.accordion({"Packages": dependencies_view(_result.dependencies)}),
             ]
     mo.vstack(_sections)
+    return
 
 
 @app.cell(hide_code=True)
