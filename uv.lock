@@ -545,8 +545,8 @@ wheels = [
 
 [[package]]
 name = "spacecraft-autonomy-challenge-core"
-version = "1.3.0"
-source = { git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v1.3.0#e536722275b298b891e2ebd2c03521ba8fe3915b" }
+version = "1.3.1"
+source = { git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v1.3.1#ff8cd9404a6c800e046baafd2f11aaae7f98538a" }
 dependencies = [
     { name = "packaging" },
 ]
@@ -569,7 +569,7 @@ lint = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "spacecraft-autonomy-challenge-core", git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v1.3.0" }]
+requires-dist = [{ name = "spacecraft-autonomy-challenge-core", git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v1.3.1" }]
 
 [package.metadata.requires-dev]
 dev = [
