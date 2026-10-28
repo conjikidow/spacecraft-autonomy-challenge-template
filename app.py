@@ -793,8 +793,6 @@ def _(load_error, result, run_button, run_error, scenario_picker, strategy_outpu
                 + [f"| {label} | {value} |" for label, value in _rows]
             )
         )
-        # The top margin matches that of the heading in marimo's Markdown styles, so
-        # the caption starts level with the heading instead of above it.
         _columns.append(
             mo.vstack(
                 [
@@ -804,7 +802,7 @@ def _(load_error, result, run_button, run_error, scenario_picker, strategy_outpu
                     ),
                     time_series_chart(result),
                 ]
-            ).style(flex="1 1 360px", min_width="320px", margin_top="1.5rem")
+            ).style(flex="1 1 360px", min_width="320px", align_self="baseline")
         )
         if _metrics.safety_violations:
             _sections.append(
@@ -843,10 +841,12 @@ def _(load_error, result, run_button, run_error, scenario_picker, strategy_outpu
         )
     mo.vstack(
         [
+            # Both columns align on their first baseline, so the chart's caption sits
+            # on the same line as the heading.
             mo.hstack(
                 [
                     mo.vstack([mo.vstack(_controls), _body], gap=1.5).style(
-                        flex="0 1 auto"
+                        flex="0 1 auto", align_self="baseline"
                     ),
                     *_columns,
                 ],
