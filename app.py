@@ -481,11 +481,30 @@ class SubmissionFinder(importlib.abc.MetaPathFinder):
 
 
 @app.function(hide_code=True)
+@contextlib.contextmanager
+def submission_import_hook():
+    """Install a `SubmissionFinder` for the duration of the block.
+
+    It is removed on exit because `marimo run` serves every session from one process
+    and clears a closed session's globals, which the finder's methods need.
+    """
+    finder = SubmissionFinder()
+    # Right before the path-based finder, so built-in and frozen modules keep
+    # precedence as they do under the command-line runner.
+    sys.meta_path.insert(sys.meta_path.index(importlib.machinery.PathFinder), finder)
+    try:
+        yield
+    finally:
+        sys.meta_path.remove(finder)
+
+
+@app.function(hide_code=True)
 def load_strategy():
     """Instantiate `MyStrategy` from the current files under `submission/`.
 
     Like the command-line runner, `submission/` is put first on the import path so that
-    `strategy.py` can import sibling modules, which are also read again from disk.
+    `strategy.py` can import sibling modules, which are also read again from disk as
+    long as this is called inside `submission_import_hook()`.
     Raises `SubmissionLoadError`, chained to the participant's exception, if the code
     cannot be imported or instantiated.
     """
@@ -495,12 +514,6 @@ def load_strategy():
     while entry in sys.path:
         sys.path.remove(entry)
     sys.path.insert(0, entry)
-    if not any(isinstance(finder, SubmissionFinder) for finder in sys.meta_path):
-        # Right before the path-based finder, so built-in and frozen modules keep
-        # precedence as they do under the command-line runner.
-        sys.meta_path.insert(
-            sys.meta_path.index(importlib.machinery.PathFinder), SubmissionFinder()
-        )
     loader = SourceOnlyLoader("_submission_strategy", str(STRATEGY_FILE))
     module = importlib.util.module_from_spec(
         importlib.util.spec_from_loader(loader.name, loader)
@@ -697,7 +710,11 @@ def _(run_button, scenario_picker):
     strategy_output = ""
     if run_button.value:
         _output = io.StringIO()
-        with contextlib.redirect_stdout(_output), contextlib.redirect_stderr(_output):
+        with (
+            contextlib.redirect_stdout(_output),
+            contextlib.redirect_stderr(_output),
+            submission_import_hook(),
+        ):
             try:
                 result = run(load_strategy(), scenario(scenario_picker.value))
             except SubmissionLoadError as error:
