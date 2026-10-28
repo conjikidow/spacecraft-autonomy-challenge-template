@@ -135,6 +135,15 @@ with app.setup(hide_code=True):
     class SubmissionLoadError(Exception):
         """Raised when the participant's strategy cannot be imported or instantiated."""
 
+    class VegaLiteOutput:
+        """Show a Vega-Lite JSON spec as is, through marimo's MIME protocol."""
+
+        def __init__(self, spec):
+            self.spec = spec
+
+        def _mime_(self):
+            return "application/vnd.vegalite.v6+json", self.spec
+
 
 @app.cell(hide_code=True)
 def _():
@@ -584,7 +593,7 @@ def time_series_chart(result):
         ]
     )
     x_scale = alt.Scale(domain=[0, problem.time_limit_s / 3600], nice=False)
-    width, line_color, limit_color = 300, "#2a78d6", "#7a7974"
+    width, line_color, limit_color = "container", "#2a78d6", "#7a7974"
     hover = alt.selection_point(
         name="hover",
         fields=["time_s"],
@@ -687,7 +696,7 @@ def time_series_chart(result):
     # All panels share the hover selection; altair merges it and warns about that.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Automatically deduplicated", UserWarning)
-        return alt.vconcat(
+        chart = alt.vconcat(
             *(_panel(*panel) for panel in panels),
             alt.layer(strip, cursor).properties(
                 title=alt.Title(
@@ -699,7 +708,13 @@ def time_series_chart(result):
                 height=44,
             ),
             data=data,
+            autosize=alt.AutoSizeParams(type="fit-x", contains="padding"),
         )
+    # marimo re-measures a chart when its output resizes only if the top-level width
+    # is "container". The Vega-Lite schema has no width for concatenated charts, so
+    # the spec is serialized without validation and shown as is.
+    chart["width"] = "container"
+    return VegaLiteOutput(chart.to_json(validate=False))
 
 
 @app.cell(hide_code=True)
@@ -785,28 +800,28 @@ def _(load_error, result, run_error, strategy_output):
             ),
         ]
         _sections.append(
-            mo.md(
-                "\n".join(
-                    ["| Metric | Value |", "|:---|:---|"]
-                    + [f"| {label} | {value} |" for label, value in _rows]
-                )
-            )
-        )
-        _sections.append(
-            mo.accordion(
-                {
-                    "Time series": lambda: mo.vstack(
+            mo.hstack(
+                [
+                    mo.md(
+                        "\n".join(
+                            ["| Metric | Value |", "|:---|:---|"]
+                            + [f"| {label} | {value} |" for label, value in _rows]
+                        )
+                    ).style(flex="0 1 auto"),
+                    mo.vstack(
                         [
                             mo.md(
                                 "True state from the simulator, sampled every "
-                                f"{SAMPLE_PERIOD_S:g} s. "
-                                "Hover for values."
+                                f"{SAMPLE_PERIOD_S:g} s."
                             ),
                             time_series_chart(result),
                         ]
-                    )
-                },
-                lazy=True,
+                    ).style(flex="1 1 360px", min_width="320px"),
+                ],
+                justify="start",
+                align="start",
+                wrap=True,
+                gap=1,
             )
         )
         if _metrics.safety_violations:
