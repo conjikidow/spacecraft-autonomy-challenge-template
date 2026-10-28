@@ -430,19 +430,6 @@ def _():
     return run_button, scenario_picker
 
 
-@app.cell(hide_code=True)
-def _(run_button, scenario_picker):
-    mo.vstack(
-        [
-            mo.md("## Try a scenario"),
-            mo.md("One public scenario, run in this notebook, with full details."),
-            mo.hstack([scenario_picker, run_button], justify="start", gap=1),
-            mo.md(scenario(scenario_picker.value).description),
-        ]
-    )
-    return
-
-
 @app.function(hide_code=True)
 def forget_submission_modules():
     """Remove imported modules whose files are under `submission/`.
@@ -743,24 +730,25 @@ def _(run_button, scenario_picker):
 
 
 @app.cell(hide_code=True)
-def _(load_error, result, run_error, strategy_output):
+def _(load_error, result, run_button, run_error, scenario_picker, strategy_output):
+    _controls = [
+        mo.md("## Try a scenario"),
+        mo.md("One public scenario, run in this notebook, with full details."),
+        mo.hstack([scenario_picker, run_button], justify="start", gap=1),
+        mo.md(scenario(scenario_picker.value).description).style(contain="inline-size"),
+    ]
+    _columns = []
     _sections = []
-    mo.stop(
-        result is None and not load_error and not run_error,
-        mo.md("Select a scenario and click **Run** to see the result."),
-    )
     if load_error:
-        _sections.append(
-            mo.callout(
-                text_view(load_error),
-                kind="danger",
-                title=f"Could not load submission/strategy.py:{STRATEGY_CLASS}",
-            )
+        _body = mo.callout(
+            text_view(load_error),
+            kind="danger",
+            title=f"Could not load submission/strategy.py:{STRATEGY_CLASS}",
         )
     elif run_error:
-        _sections.append(
-            mo.callout(text_view(run_error), kind="danger", title="The run stopped")
-        )
+        _body = mo.callout(text_view(run_error), kind="danger", title="The run stopped")
+    elif result is None:
+        _body = mo.md("Select a scenario and click **Run** to see the result.")
     else:
         _metrics = evaluate(result)
         _declared = (
@@ -799,30 +787,22 @@ def _(load_error, result, run_error, strategy_output):
                 f"{_metrics.max_abs_wheel_momentum_nms:.4f} Nms",
             ),
         ]
-        _sections.append(
-            mo.hstack(
+        _body = mo.md(
+            "\n".join(
+                ["| Metric | Value |", "|:---|:---|"]
+                + [f"| {label} | {value} |" for label, value in _rows]
+            )
+        )
+        _columns.append(
+            mo.vstack(
                 [
                     mo.md(
-                        "\n".join(
-                            ["| Metric | Value |", "|:---|:---|"]
-                            + [f"| {label} | {value} |" for label, value in _rows]
-                        )
-                    ).style(flex="0 1 auto"),
-                    mo.vstack(
-                        [
-                            mo.md(
-                                "True state from the simulator, sampled every "
-                                f"{SAMPLE_PERIOD_S:g} s."
-                            ),
-                            time_series_chart(result),
-                        ]
-                    ).style(flex="1 1 360px", min_width="320px"),
-                ],
-                justify="start",
-                align="start",
-                wrap=True,
-                gap=1,
-            )
+                        "True state from the simulator, sampled every "
+                        f"{SAMPLE_PERIOD_S:g} s."
+                    ),
+                    time_series_chart(result),
+                ]
+            ).style(flex="1 1 360px", min_width="320px", align_self="baseline")
         )
         if _metrics.safety_violations:
             _sections.append(
@@ -849,16 +829,35 @@ def _(load_error, result, run_error, strategy_output):
                     title=f"The run ended with {_metrics.termination_reason}",
                 )
             )
-    _sections.append(
-        mo.accordion(
-            {
-                "Strategy output (stdout and stderr)": text_view(strategy_output)
-                if strategy_output
-                else mo.md("The strategy printed nothing.")
-            }
+    if result is not None or load_error or run_error:
+        _sections.append(
+            mo.accordion(
+                {
+                    "Strategy output (stdout and stderr)": text_view(strategy_output)
+                    if strategy_output
+                    else mo.md("The strategy printed nothing.")
+                }
+            )
         )
+    mo.vstack(
+        [
+            # Both columns align on their first baseline, so the chart's caption sits
+            # on the same line as the heading.
+            mo.hstack(
+                [
+                    mo.vstack([mo.vstack(_controls), _body], gap=1.5).style(
+                        flex="0 1 auto", align_self="baseline"
+                    ),
+                    *_columns,
+                ],
+                justify="start",
+                align="start",
+                wrap=True,
+                gap=1,
+            ),
+            *_sections,
+        ]
     )
-    mo.vstack(_sections)
     return
 
 
