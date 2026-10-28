@@ -87,7 +87,7 @@ A URL without a path, such as `http://<host>:<port>`, is taken as `http://<host>
 ```sh
 export EVALUATION_SERVER_URL=<URL>
 export EVALUATION_SERVER_TOKEN=<token>
-uv run submit.py            # practice evaluation on hidden cases: waits for the result and shows it
+uv run submit.py            # practice evaluation on hidden scenarios: waits for the result and shows it
 uv run submit.py --final    # final submission: shows the receipt
 ```
 
@@ -95,7 +95,9 @@ On Windows, or instead of the environment variables, pass `--server <URL>` and `
 If you stop waiting for a practice evaluation, it continues on the server; `uv run submit.py --status <id>` shows it later.
 You are identified by `git config user.email` and `git config user.name`;
 `--participant-id` and `--participant-name` override them, and `uv run submit.py --help` lists all options.
-In the notebook, enter the server settings under **Evaluation server** and submit from the **Submit** section.
+In the notebook, enter the server settings under **Evaluation server**.
+Submit from **Practice on hidden scenarios** for a practice evaluation,
+or from **Submit the final version** for the final submission.
 The notebook pre-fills the URL and the token from `EVALUATION_SERVER_URL` and `EVALUATION_SERVER_TOKEN`,
 and your email and name from `git config`.
 

@@ -83,7 +83,7 @@ uv run autonomy-challenge check
 ```sh
 export EVALUATION_SERVER_URL=<URL>
 export EVALUATION_SERVER_TOKEN=<トークン>
-uv run submit.py            # 非公開ケースでの練習評価：結果を待って表示する
+uv run submit.py            # 非公開シナリオでの練習評価：結果を待って表示する
 uv run submit.py --final    # 最終提出：受付票を表示する
 ```
 
@@ -92,7 +92,8 @@ Windows の場合や環境変数を使わない場合は，`--server <URL>` と 
 あとから `uv run submit.py --status <ID>` で確認できます。
 提出者は `git config user.email` と `git config user.name` で識別されます。
 `--participant-id` と `--participant-name` で上書きでき，`uv run submit.py --help` ですべてのオプションを確認できます。
-ノートブックでは，**Evaluation server** セクションにサーバーの設定を入力し，**Submit** セクションから提出できます。
+ノートブックでは，**Evaluation server** セクションにサーバーの設定を入力します。
+練習評価は **Practice on hidden scenarios** セクションから，最終提出は **Submit the final version** セクションから行えます。
 URL とトークンは `EVALUATION_SERVER_URL` と `EVALUATION_SERVER_TOKEN` から，メールアドレスと名前は `git config` から，あらかじめ入力されています。
 
 サーバーに順位表がある場合は，`uv run submit.py --board` で，最終提出を受け付けているかどうかと残り時間，公開後の最終順位とともに表示できます。

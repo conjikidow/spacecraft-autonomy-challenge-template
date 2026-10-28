@@ -103,24 +103,62 @@ with app.setup(hide_code=True):
 
 @app.cell(hide_code=True)
 def _():
-    mo.md(r"""
-    # Spacecraft Autonomy Challenge
+    _overview = [
+        (
+            "Try a scenario",
+            "one public scenario you pick",
+            "in this notebook",
+            "full details of the run",
+        ),
+        (
+            "Check on public scenarios",
+            "all public scenarios",
+            "packed, as the server runs them",
+            "scores",
+        ),
+        (
+            "Practice on hidden scenarios",
+            "hidden scenarios",
+            "on your event's evaluation server",
+            "scores; ranked on the **Leaderboard**",
+        ),
+        (
+            "Submit the final version",
+            "—",
+            "stored on your event's evaluation server",
+            "a receipt",
+        ),
+    ]
+    mo.vstack(
+        [
+            mo.md(r"""
+            # Spacecraft Autonomy Challenge
 
-    Your solution is the `submission/` directory.
-    The entry point is the `MyStrategy` class in `submission/strategy.py`,
-    and every other file it needs (Python modules, planning models, model weights,
-    configuration, data) also belongs under `submission/`.
+            Your solution is the `submission/` directory.
+            The entry point is the `MyStrategy` class in `submission/strategy.py`,
+            and every other file it needs (Python modules, planning models,
+            model weights, configuration, data) also belongs under `submission/`.
 
-    1. Edit `submission/strategy.py` in the **Strategy** editor below.
-       Add or edit any other file under `submission/` from the Files panel
-       or your own editor, and add packages with `uv add`.
-    2. Select a public scenario and click **Run**.
-       Every run loads the current files from disk,
-       so there is no need to restart this notebook.
-    3. Inspect the result and iterate.
-    4. Click **Check** to test on all public scenarios.
-    5. If your event has an evaluation server, **Submit** and watch the **Leaderboard**.
-    """)
+            Edit `submission/strategy.py` in the **Strategy** editor below.
+            Add or edit any other file under `submission/` from the Files panel
+            or your own editor, and add packages with `uv add`.
+
+            Then test and submit it in these sections, each using the current files:
+            """),
+            mo.md(
+                "\n".join(
+                    [
+                        "| Section | Scenarios | Runs | Shows |",
+                        "|:---|:---|:---|:---|",
+                        *(
+                            f"| **{section}** | {' | '.join(details)} |"
+                            for section, *details in _overview
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )
 
 
 @app.cell(hide_code=True)
@@ -359,7 +397,8 @@ def _():
 def _(run_button, scenario_picker):
     mo.vstack(
         [
-            mo.md("## Public scenarios"),
+            mo.md("## Try a scenario"),
+            mo.md("One public scenario, run in this notebook, with full details."),
             mo.hstack([scenario_picker, run_button], justify="start", gap=1),
             mo.md(scenario(scenario_picker.value).description),
         ]
@@ -456,32 +495,30 @@ def load_strategy():
 @app.cell(hide_code=True)
 def _(run_button, scenario_picker):
     load_error = ""
+    run_error = ""
     result = None
     strategy_output = ""
     if run_button.value:
         _output = io.StringIO()
         with contextlib.redirect_stdout(_output), contextlib.redirect_stderr(_output):
             try:
-                _strategy = load_strategy()
+                result = run(load_strategy(), scenario(scenario_picker.value))
             except SubmissionLoadError as error:
                 load_error = "".join(traceback.format_exception(error))
-            else:
-                result = run(_strategy, scenario(scenario_picker.value))
+            except KeyboardInterrupt:
+                run_error = "The run was interrupted."
+            except SystemExit:
+                run_error = "The strategy called sys.exit()."
         strategy_output = _output.getvalue()
-    return load_error, result, strategy_output
+    return load_error, result, run_error, strategy_output
 
 
 @app.cell(hide_code=True)
-def _(load_error, result, strategy_output):
-    _sections = [mo.md("## Result")]
+def _(load_error, result, run_error, strategy_output):
+    _sections = []
     mo.stop(
-        result is None and not load_error,
-        mo.vstack(
-            [
-                *_sections,
-                mo.md("Select a scenario and click **Run** to see the result."),
-            ]
-        ),
+        result is None and not load_error and not run_error,
+        mo.md("Select a scenario and click **Run** to see the result."),
     )
     if load_error:
         _sections.append(
@@ -490,6 +527,10 @@ def _(load_error, result, strategy_output):
                 kind="danger",
                 title=f"Could not load submission/strategy.py:{STRATEGY_CLASS}",
             )
+        )
+    elif run_error:
+        _sections.append(
+            mo.callout(text_view(run_error), kind="danger", title="The run stopped")
         )
     else:
         _metrics = evaluate(result)
@@ -632,11 +673,8 @@ def _():
 @app.cell(hide_code=True)
 def _(check_button):
     _sections = [
-        mo.md("## Check"),
-        mo.md(
-            "Run your submission on all public scenarios, "
-            "as the evaluation server does."
-        ),
+        mo.md("## Check on public scenarios"),
+        mo.md("All public scenarios, packed and run as the server does."),
         check_button,
     ]
     if check_button.value:
@@ -694,22 +732,6 @@ def _():
             ),
         }
     )
-    practice_button = mo.ui.run_button(
-        label="Submit for practice",
-        kind="success",
-        tooltip=(
-            "Packs the current files and runs them on hidden cases. "
-            "The result appears here."
-        ),
-    )
-    final_button = mo.ui.run_button(
-        label="Submit as final",
-        kind="warn",
-        tooltip=(
-            "Packs the current files and stores them as your final version. "
-            "You get a receipt."
-        ),
-    )
     mo.vstack(
         [
             mo.md("## Evaluation server"),
@@ -717,20 +739,32 @@ def _():
             *server_form.values(),
         ]
     )
-    return final_button, practice_button, server_form
+    return (server_form,)
 
 
 @app.cell(hide_code=True)
-def _(final_button, practice_button, server_form):
+def _():
+    practice_button = mo.ui.run_button(
+        label="Submit for practice",
+        kind="success",
+        tooltip=(
+            "Packs the current files and runs them on hidden scenarios. "
+            "The result appears here."
+        ),
+    )
+    return (practice_button,)
+
+
+@app.cell(hide_code=True)
+def _(practice_button, server_form):
     _sections = [
-        mo.md("## Submit"),
-        mo.md("Submit to your event's evaluation server."),
-        mo.hstack([practice_button, final_button], justify="start", gap=1),
+        mo.md("## Practice on hidden scenarios"),
+        mo.md("Scored on the evaluation server; ranked on the leaderboard."),
+        practice_button,
     ]
-    if practice_button.value or final_button.value:
+    if practice_button.value:
         # Shown now, so the spinner appears below the heading instead of replacing it.
         mo.output.replace(mo.vstack(_sections))
-        _final = bool(final_button.value)
         _form = server_form.value
         try:
             if not (
@@ -742,17 +776,15 @@ def _(final_button, practice_button, server_form):
                 build_submission(REPOSITORY_DIR),
                 _form["participant_id"].strip(),
                 _form["participant_name"].strip(),
-                final=_final,
+                final=False,
             )
-            _document = _receipt
-            if not _final:
-                with mo.status.spinner(
-                    title="Waiting for the practice evaluation"
-                ) as _spinner:
-                    _document = _server.wait(
-                        _receipt["id"],
-                        on_status=lambda status: _spinner.update(subtitle=status),
-                    )
+            with mo.status.spinner(
+                title="Waiting for the practice evaluation"
+            ) as _spinner:
+                _document = _server.wait(
+                    _receipt["id"],
+                    on_status=lambda status: _spinner.update(subtitle=status),
+                )
         except (ServerError, SubmissionError, OSError) as error:
             _sections.append(
                 mo.callout(str(error), kind="danger", title="Could not submit")
@@ -762,7 +794,7 @@ def _(final_button, practice_button, server_form):
                 mo.callout(
                     text_view("\n".join(receipt_lines(_document))),
                     kind="success" if _document.get("status") != "failed" else "danger",
-                    title="Final submission received" if _final else "Submission",
+                    title="Submission",
                 )
             )
             if _document.get("status") == "failed":
@@ -794,6 +826,60 @@ def _(final_button, practice_button, server_form):
                             str(error), kind="danger", title="Invalid result document"
                         )
                     )
+    mo.vstack(_sections)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    final_button = mo.ui.run_button(
+        label="Submit as final",
+        kind="warn",
+        tooltip=(
+            "Packs the current files and stores them as your final version. "
+            "You get a receipt."
+        ),
+    )
+    return (final_button,)
+
+
+@app.cell(hide_code=True)
+def _(final_button, server_form):
+    _sections = [
+        mo.md("## Submit the final version"),
+        mo.md("Stored on the evaluation server for the final evaluation."),
+        final_button,
+    ]
+    if final_button.value:
+        # Shown now, so an earlier receipt does not stay visible while submitting.
+        mo.output.replace(mo.vstack(_sections))
+        _form = server_form.value
+        try:
+            if not (
+                _form["participant_id"].strip() and _form["participant_name"].strip()
+            ):
+                raise ServerError("enter your email and name")
+            _server = EvaluationServer(_form["url"], _form["token"])
+            _receipt = _server.submit(
+                build_submission(REPOSITORY_DIR),
+                _form["participant_id"].strip(),
+                _form["participant_name"].strip(),
+                final=True,
+            )
+        except (ServerError, SubmissionError, OSError) as error:
+            _sections.append(
+                mo.callout(str(error), kind="danger", title="Could not submit")
+            )
+        else:
+            _sections.append(
+                mo.callout(
+                    text_view("\n".join(receipt_lines(_receipt))),
+                    kind="success" if _receipt.get("status") != "failed" else "danger",
+                    title="Final submission received",
+                )
+            )
+            if _receipt.get("status") == "failed":
+                _sections.append(mo.md(f"**Not evaluated:** {_receipt.get('error')}"))
     mo.vstack(_sections)
     return
 
