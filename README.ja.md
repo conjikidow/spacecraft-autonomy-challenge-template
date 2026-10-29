@@ -16,10 +16,15 @@ Spacecraft Autonomy Challenge の戦略を書くなら，ここから始めて�
 
 - Python 3.12 以降
 - [uv](https://docs.astral.sh/uv/)
+- [Git](https://git-scm.com/)
 
 ## セットアップ
 
+このリポジトリをクローンし，依存パッケージをインストールします。
+
 ```sh
+git clone https://github.com/conjikidow/spacecraft-autonomy-challenge-template.git
+cd spacecraft-autonomy-challenge-template
 uv sync
 ```
 
@@ -63,16 +68,18 @@ uv run marimo edit app.py
 ```
 
 ノートブックでは，宇宙機，ミッション，戦略 API を確認しながら `submission/strategy.py` を編集し，公開シナリオで実行し，提出物を確認して，評価サーバーに提出できます。
+グリッドレイアウトを使うには，右下の **Toggle app view** ボタンか `Ctrl+.`（macOS では `Cmd+.`）で app view に切り替えてください。
 
 ## 提出物の確認
+
+`submission/` と `pyproject.toml` をメモリ上で `submission.zip` にまとめ，評価サーバーと同じ方法ですべての公開シナリオで評価します。
 
 ```sh
 uv run autonomy-challenge check
 ```
 
-このコマンドは，`submission/` と `pyproject.toml` をメモリ上で `submission.zip` にまとめ，評価サーバーと同じ方法ですべての公開シナリオで評価します。
 各シナリオでは戦略を新しい Python プロセスで起動し，`pyproject.toml` のパッケージのうち足りないものは，この確認のためだけにインストールします。
-得点，要約，ケースごとの表を出力します。
+このコマンドは，得点，要約，ケースごとの表を出力します。
 `uv run autonomy-challenge pack` は，評価せずに `submission.zip` をファイルに書き出します。
 
 ## 評価サーバーへの提出

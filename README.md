@@ -16,10 +16,15 @@ pinned to a release tag in `pyproject.toml`.
 
 - Python 3.12 or later
 - [uv](https://docs.astral.sh/uv/)
+- [Git](https://git-scm.com/)
 
 ## Setup
 
+Clone this repository and install the dependencies:
+
 ```sh
+git clone https://github.com/conjikidow/spacecraft-autonomy-challenge-template.git
+cd spacecraft-autonomy-challenge-template
 uv sync
 ```
 
@@ -65,17 +70,21 @@ uv run marimo edit app.py
 The notebook shows the spacecraft, the mission, and the strategy API,
 edits `submission/strategy.py`, runs it on a public scenario, checks the submission,
 and submits it to an evaluation server.
+To use the grid layout, switch to app view with the **Toggle app view** button at the bottom right,
+or with `Ctrl+.` (`Cmd+.` on macOS).
 
 ## Checking Your Submission
+
+Pack `submission/` and `pyproject.toml` into `submission.zip` in memory
+and evaluate it on all public scenarios the way an evaluation server runs it:
 
 ```sh
 uv run autonomy-challenge check
 ```
 
-packs `submission/` and `pyproject.toml` into `submission.zip` in memory and evaluates it on all public scenarios
-the way an evaluation server runs it: each scenario starts your strategy in a new Python process,
+Each scenario starts your strategy in a new Python process,
 and packages of `pyproject.toml` that are missing are installed for the check only.
-It prints the scores, a summary, and a table of the cases.
+The command prints the scores, a summary, and a table of the cases.
 `uv run autonomy-challenge pack` writes `submission.zip` to a file without evaluating it.
 
 ## Submitting to an Evaluation Server
