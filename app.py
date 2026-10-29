@@ -410,7 +410,7 @@ def _(strategy_editor):
         mo.md(
             """
             Saved to `submission/strategy.py` when the editor loses focus.
-            After editing the file elsewhere, reload this notebook first.
+            After editing the file elsewhere, restart the kernel and run all cells.
             """
         ),
         strategy_editor,
