@@ -1052,15 +1052,7 @@ def _():
 def _(practice_button, server_form):
     _sections = [
         mo.md("## Practice on hidden scenarios"),
-        mo.md(
-            "Scored on the evaluation server; ranked on the leaderboard "
-            "by the fixed cases alone. "
-            "The random cases are redrawn on every submission. "
-            "The result shows the last lines of the output of each case, "
-            "and you can have one practice submission in flight at a time. "
-            "The server may stop a practice submission that takes too long; "
-            "such cases show as `TIMEOUT`."
-        ),
+        mo.md("Scored on the server; the leaderboard ranks the fixed cases only."),
         practice_button,
     ]
     if practice_button.value:
