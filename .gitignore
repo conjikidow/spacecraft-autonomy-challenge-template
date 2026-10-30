@@ -14,3 +14,6 @@ submission.zip
 
 # marimo session snapshots
 __marimo__/
+
+# Submissions this clone has sent to an evaluation server
+.submissions.log

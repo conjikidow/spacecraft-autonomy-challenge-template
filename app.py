@@ -70,7 +70,10 @@ with app.setup(hide_code=True):
         boards,
         final_status,
         git_config,
+        later_text,
         receipt_lines,
+        record_submission,
+        saved_note,
         score_text,
     )
 
@@ -1031,6 +1034,7 @@ def _(practice_button, server_form):
         # Shown now, so the spinner appears below the heading instead of replacing it.
         mo.output.replace(mo.vstack(_sections))
         _form = server_form.value
+        _receipt = None
         try:
             if not (
                 _form["participant_id"].strip() and _form["participant_name"].strip()
@@ -1043,16 +1047,26 @@ def _(practice_button, server_form):
                 _form["participant_name"].strip(),
                 final=False,
             )
+            _problem = record_submission(_server, _receipt)
             with mo.status.spinner(
                 title="Waiting for the practice evaluation"
             ) as _spinner:
                 _document = _server.wait(
                     _receipt["id"],
                     on_status=lambda status: _spinner.update(subtitle=status),
+                    on_retry=lambda message: _spinner.update(subtitle=message),
                 )
         except (ServerError, SubmissionError, OSError) as error:
             _sections.append(
-                mo.callout(str(error), kind="danger", title="Could not submit")
+                mo.callout(
+                    str(error)
+                    if _receipt is None
+                    else f"{error}\n\n{later_text(_receipt)}",
+                    kind="danger",
+                    title="Could not submit"
+                    if _receipt is None
+                    else "Could not follow the evaluation",
+                )
             )
         else:
             _sections.append(
@@ -1062,6 +1076,7 @@ def _(practice_button, server_form):
                     title="Submission",
                 )
             )
+            _sections.append(mo.md(saved_note(_problem)))
             if _document.get("status") == "failed":
                 _sections.append(mo.md(f"**Not evaluated:** {_document.get('error')}"))
             elif _document.get("result") is not None:
@@ -1131,6 +1146,7 @@ def _(final_button, server_form):
                 _form["participant_name"].strip(),
                 final=True,
             )
+            _problem = record_submission(_server, _receipt)
         except (ServerError, SubmissionError, OSError) as error:
             _sections.append(
                 mo.callout(str(error), kind="danger", title="Could not submit")
@@ -1143,6 +1159,7 @@ def _(final_button, server_form):
                     title="Final submission received",
                 )
             )
+            _sections.append(mo.md(saved_note(_problem)))
             if _receipt.get("status") == "failed":
                 _sections.append(mo.md(f"**Not evaluated:** {_receipt.get('error')}"))
     mo.vstack(_sections)
