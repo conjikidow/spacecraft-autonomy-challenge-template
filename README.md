@@ -150,7 +150,8 @@ a practice result also shows this score, as **Fixed cases**, when the server rep
   The fixed cases are the same every time.
 - The leaderboard ranks on the fixed cases only.
 - You can have one practice submission in flight at a time; submit again after the previous one has finished.
-- By default, a practice submission has a total limit of 600 s for all its case executions together, and each case a limit of 300 s.
+- By default, a practice submission has a total limit of 600 s for all its case executions together,
+  and each case a limit of 300 s.
   The total limit does not include installing the submission's packages.
   These are settings of the evaluation server, and the organizers may change them.
   A case that exceeds its limit shows as `TIMEOUT`.
