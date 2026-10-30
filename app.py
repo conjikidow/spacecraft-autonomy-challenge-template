@@ -673,15 +673,18 @@ def time_series_chart(result):
         for scheduled in result.executed_commands
         if scheduled.command == SetMomentumDump(on=False)
     ]
-    for previous, state in itertools.pairwise(result.trajectory):
-        if (
-            previous.momentum_dump_on
-            and not state.momentum_dump_on
-            and not any(
-                previous.time_s <= time_s < state.time_s for time_s in commanded_off_s
-            )
-        ):
-            changes["Dump"].append((state.time_s, None))
+    switched_off = [
+        (state.time_s, None)
+        for previous, state in itertools.pairwise(result.trajectory)
+        if previous.momentum_dump_on
+        and not state.momentum_dump_on
+        and not any(
+            previous.time_s <= time_s < state.time_s for time_s in commanded_off_s
+        )
+    ]
+    # Commands run after the state of their time, so a switch-off at the same time
+    # comes first.
+    changes["Dump"][1:1] = switched_off
     changes["Dump"].sort(key=lambda change: change[0])
     bars = [
         {"channel": channel, "state": state, "start_s": start_s, "end_s": end_s}
