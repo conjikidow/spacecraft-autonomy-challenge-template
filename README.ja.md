@@ -61,6 +61,24 @@ uv run autonomy-challenge run submission/strategy.py:MyStrategy --scenario thrus
 uv add numpy
 ```
 
+## 戦略 API
+
+戦略は `commander.schedule(time_s, command)` でコマンドをスケジュールし，渡されるテレメトリを読みます。
+`brief.nominal_initial_telemetry` は名目上の初期状態です。
+実際の測定値はこれとずれることがあります。
+
+| コマンド                  | 引数                     | 効果                                                     |
+| ------------------------- | ------------------------ | -------------------------------------------------------- |
+| `SetPropulsionMode(mode)` | `mode`: `PropulsionMode` | 推進モードを選択する                                     |
+| `SetHeater(on)`           | `on`: `bool`             | 推進系のヒータをオンまたはオフにする                     |
+| `SetMomentumDump(on)`     | `on`: `bool`             | モーメンタムダンプをオンまたはオフにする                 |
+| `DeclareCompletion()`     | なし                     | 戦略が操作を完了したとみなすことを宣言し，実行を終了する |
+
+`PropulsionMode` のメンバーは `OFF`，`THRUSTER_1`，`THRUSTER_2` です。
+`Telemetry` のフィールドは `time_s`，`delta_v_mps`，`propulsion_temperature_c`，`battery_energy_wh`，
+`wheel_momentum_nms`，`heater_on`，`propulsion_mode`，`momentum_dump_on` です。
+コマンド，ブリーフ，宇宙機モデルの詳細は，下にリンクした core のドキュメントを参照してください。
+
 ## ノートブックでの作業
 
 ```sh
@@ -116,6 +134,16 @@ URL とトークンは `EVALUATION_SERVER_URL` と `EVALUATION_SERVER_TOKEN` か
 ノートブックの **Leaderboard** セクションでも同じものを表示できます。
 練習の順位表は，練習評価のすべてのケースではなく，サーバーの固定の練習ケースだけでの得点で順位を付けます。
 サーバーがこの得点を返す場合は，練習評価の結果にも **Fixed cases** として表示されます。
+
+### 練習評価の仕組み
+
+- 結果には各ケースの標準出力と標準エラー出力の最後の数行が表示されるため，サーバー上での戦略のデバッグには `print` が使えます。
+- 練習ケースには乱数で生成されるものが含まれ，提出のたびに引き直されます。
+  そのため，同じ戦略でも提出ごとに得点が変わることがあります。
+  固定ケースは毎回同じです。
+- 順位表は固定ケースだけで順位を付けます。
+- 実行中の練習提出は参加者ごとに 1 件までです。前の提出が終わってから，もう一度提出してください。
+- サーバーは，時間がかかりすぎる練習提出を停止することがあります。そのケースは `TIMEOUT` と表示されます。
 
 ## ドキュメント
 

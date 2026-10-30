@@ -346,7 +346,9 @@ def _():
     _contents = {
         "brief": (
             "Values under **Mission**, e.g. `brief.decision_period_s`; "
-            "`brief.nominal_parameters` under **Nominal parameters**"
+            "`brief.nominal_parameters` under **Nominal parameters**; "
+            "`brief.nominal_initial_telemetry` is the nominal initial state "
+            "under **Initial state**"
         ),
         "telemetry": (
             "Fields under **Spacecraft** at the callback time, "
@@ -1027,7 +1029,15 @@ def _():
 def _(practice_button, server_form):
     _sections = [
         mo.md("## Practice on hidden scenarios"),
-        mo.md("Scored on the evaluation server; ranked on the leaderboard."),
+        mo.md(
+            "Scored on the evaluation server; ranked on the leaderboard "
+            "by the fixed cases alone. "
+            "The random cases are redrawn on every submission. "
+            "The result shows the last lines of the output of each case, "
+            "and you can have one practice submission in flight at a time. "
+            "The server may stop a practice submission that takes too long; "
+            "such cases show as `TIMEOUT`."
+        ),
         practice_button,
     ]
     if practice_button.value:

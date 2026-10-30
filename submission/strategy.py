@@ -12,6 +12,7 @@ from spacecraft_autonomy_challenge import (  # noqa: F401
     SafetyLimits,
     ScheduledCommand,
     SetHeater,
+    SetMomentumDump,
     SetPropulsionMode,
     SpacecraftParameters,
     Strategy,
@@ -26,7 +27,9 @@ class MyStrategy(Strategy):
     ) -> None:
         """Called once at time 0.
 
-        Schedule commands with `commander.schedule(time_s, command)`.
+        Schedule commands with `commander.schedule(time_s, command)`,
+        e.g. `commander.schedule(600.0, SetMomentumDump(on=True))`.
+        The nominal initial state is `brief.nominal_initial_telemetry`.
         """
         pprint.pp(brief)
         pprint.pp(telemetry)

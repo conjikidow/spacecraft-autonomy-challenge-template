@@ -61,6 +61,23 @@ Add the Python packages you need with uv, for example:
 uv add numpy
 ```
 
+## Strategy API
+
+A strategy schedules commands with `commander.schedule(time_s, command)` and reads the telemetry it is given.
+`brief.nominal_initial_telemetry` holds the nominal initial state; the actual readings may deviate from it.
+
+| Command                   | Argument                 | Effect                                                                         |
+| ------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
+| `SetPropulsionMode(mode)` | `mode`: `PropulsionMode` | Selects the propulsion mode                                                    |
+| `SetHeater(on)`           | `on`: `bool`             | Switches the propulsion heater on or off                                       |
+| `SetMomentumDump(on)`     | `on`: `bool`             | Switches the momentum dump on or off                                           |
+| `DeclareCompletion()`     | none                     | Declares that the strategy considers the maneuver complete, which ends the run |
+
+`PropulsionMode` has the members `OFF`, `THRUSTER_1`, and `THRUSTER_2`.
+`Telemetry` has the fields `time_s`, `delta_v_mps`, `propulsion_temperature_c`, `battery_energy_wh`,
+`wheel_momentum_nms`, `heater_on`, `propulsion_mode`, and `momentum_dump_on`.
+The core documentation linked below describes the commands, the brief, and the spacecraft model in detail.
+
 ## Working in the Notebook
 
 ```sh
@@ -123,6 +140,17 @@ with whether final submissions are open and the time left, and the final ranking
 The **Leaderboard** section of the notebook shows the same.
 The practice leaderboard ranks by the score on the server's fixed practice cases alone, not on all cases of a practice evaluation;
 a practice result also shows this score, as **Fixed cases**, when the server reports it.
+
+### How Practice Evaluations Work
+
+- The result shows the last lines of the standard output and standard error of each case,
+  so `print` is a way to debug a strategy on the server.
+- The practice cases include random ones that are redrawn on every submission,
+  so the same strategy can score differently from one submission to the next.
+  The fixed cases are the same every time.
+- The leaderboard ranks on the fixed cases only.
+- You can have one practice submission in flight at a time; submit again after the previous one has finished.
+- The server may stop a practice submission that takes too long; such cases show as `TIMEOUT`.
 
 ## Documentation
 
