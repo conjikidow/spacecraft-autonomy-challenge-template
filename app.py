@@ -652,7 +652,7 @@ def time_series_chart(result):
     changes = {
         "Mode": [(0.0, initial.propulsion_mode.value)],
         "Heater": [(0.0, "Heater on" if initial.heater_on else None)],
-        "Dump": [(0.0, "Momentum dump on" if initial.momentum_dump_on else None)],
+        "Dump": [],
     }
     for scheduled in result.executed_commands:
         match scheduled.command:
@@ -662,30 +662,26 @@ def time_series_chart(result):
                 changes["Heater"].append(
                     (scheduled.time_s, "Heater on" if on else None)
                 )
-            case SetMomentumDump(on=on):
-                changes["Dump"].append(
-                    (scheduled.time_s, "Momentum dump on" if on else None)
-                )
-    # The dump also switches itself off. A command shows in the trajectory one event
-    # late, so only a switch-off with no command off in between is added.
-    commanded_off_s = [
-        scheduled.time_s
+    # A command runs after the state of its time is recorded, and the dump switches
+    # itself off within a step. The dump is active from each recorded time on when it
+    # is on after the commands of that time.
+    dump_commands = {
+        scheduled.time_s: scheduled.command.on
         for scheduled in result.executed_commands
-        if scheduled.command == SetMomentumDump(on=False)
+        if isinstance(scheduled.command, SetMomentumDump)
+    }
+    dump_active = [
+        dump_commands.get(state.time_s, state.momentum_dump_on)
+        for state in result.trajectory
     ]
-    switched_off = [
-        (state.time_s, None)
-        for previous, state in itertools.pairwise(result.trajectory)
-        if previous.momentum_dump_on
-        and not state.momentum_dump_on
-        and not any(
-            previous.time_s <= time_s < state.time_s for time_s in commanded_off_s
-        )
-    ]
-    # Commands run after the state of their time, so a switch-off at the same time
-    # comes first.
-    changes["Dump"][1:1] = switched_off
-    changes["Dump"].sort(key=lambda change: change[0])
+    changes["Dump"].append((0.0, "Momentum dump on" if dump_active[0] else None))
+    for state, active, previous_active in zip(
+        result.trajectory[1:], dump_active[1:], dump_active, strict=False
+    ):
+        if active != previous_active:
+            changes["Dump"].append(
+                (state.time_s, "Momentum dump on" if active else None)
+            )
     bars = [
         {"channel": channel, "state": state, "start_s": start_s, "end_s": end_s}
         for channel, values in changes.items()
