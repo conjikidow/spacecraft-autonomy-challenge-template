@@ -12,44 +12,80 @@ The challenge problem, the simulator, and the `autonomy-challenge` command come 
 [`spacecraft-autonomy-challenge-core`](https://github.com/conjikidow/spacecraft-autonomy-challenge-core) package,
 pinned to a release tag in `pyproject.toml`.
 
-## Requirements
+## Getting Started
+
+### Requirements
 
 - Python 3.12 or later
 - [uv](https://docs.astral.sh/uv/)
 - [Git](https://git-scm.com/)
+- A GitHub account, to create your own repository from this template
 
-## Setup
+### Create Your Repository
 
-Clone this repository and install the dependencies:
-
-```sh
-git clone https://github.com/conjikidow/spacecraft-autonomy-challenge-template.git
-cd spacecraft-autonomy-challenge-template
-uv sync
-```
-
-## Running Your Strategy
-
-Your strategy is the `MyStrategy` class in `submission/strategy.py`.
-Run it on the `nominal` scenario:
+Click the **Use this template** button at the top of this repository on GitHub
+to create your own repository, then clone it:
 
 ```sh
-uv run autonomy-challenge run submission/strategy.py:MyStrategy
+git clone https://github.com/<your-account>/<your-repository>.git
+cd <your-repository>
 ```
 
-The command prints how the run ended and its metrics, computed from the true spacecraft state.
+> Note: if you do not need to keep your own strategy, you may clone this template directly instead.
 
-List the available scenarios and run another one:
+### Open the Notebook
+
+Run the notebook as an app:
 
 ```sh
-uv run autonomy-challenge scenarios
-uv run autonomy-challenge run submission/strategy.py:MyStrategy --scenario thruster-degradation
+uv run marimo run app.py
 ```
 
-Add `--json` to print the metrics as JSON.
+This opens the app in its grid layout in your browser.
+In it, you edit `submission/strategy.py`, run it on a public scenario, check the submission, and submit it.
+
+To see or change the notebook itself, open it in the editor:
+
+```sh
+uv run marimo edit app.py
+```
+
+In the editor, switch to the grid layout with the **Toggle app view** button at the bottom right,
+or with `Ctrl+.` (`Cmd+.` on macOS).
+
+## Working in the Notebook
+
+The notebook shows the spacecraft, the mission, and the strategy API.
+It then has one section for each step of working on your strategy:
+
+- **Strategy**: edit `submission/strategy.py`.
+- **Try a scenario**: run your strategy on one public scenario, with full details.
+- **Pack**: build `submission.zip` for download.
+- **Check on public scenarios**: pack `submission/` and `pyproject.toml` and evaluate them on all public scenarios
+  the way an evaluation server runs it.
+- **Evaluation server**: enter the server settings.
+- **Practice on hidden scenarios**: run a practice evaluation on the server.
+- **Submit the final version**: make the final submission.
+- **Leaderboard**: show the leaderboard.
+
+### Submitting from the Notebook
+
+If your event provides an evaluation server, the organizers give you the URL of its API, such as `http://<host>:<port>/api/v1`,
+and, if it needs one, a token.
+A URL without a path, such as `http://<host>:<port>`, is taken as `http://<host>:<port>/api/v1`.
+
+Enter the server settings under **Evaluation server**.
+The notebook pre-fills the URL and the token from the environment variables `EVALUATION_SERVER_URL` and `EVALUATION_SERVER_TOKEN`,
+and your email and name from `git config`.
+Submit from **Practice on hidden scenarios** for a practice evaluation,
+or from **Submit the final version** for the final submission.
+
+If the server has a leaderboard, the **Leaderboard** section shows it,
+with whether final submissions are open and the time left, and the final ranking once it is published.
 
 ## Writing Your Strategy
 
+Your strategy is the `MyStrategy` class in `submission/strategy.py`.
 Put all of your code and files under `submission/`.
 The directory of the strategy file is put first on the import path,
 so `submission/strategy.py` can import other modules in `submission/`.
@@ -78,19 +114,53 @@ A strategy schedules commands with `commander.schedule(time_s, command)` and rea
 `wheel_momentum_nms`, `heater_on`, `propulsion_mode`, and `momentum_dump_on`.
 The core documentation linked below describes the commands, the brief, and the spacecraft model in detail.
 
-## Working in the Notebook
+## How Practice Evaluations Work
+
+- The result shows the last lines of the standard output and standard error of each case,
+  so `print` is a way to debug a strategy on the server.
+- The practice cases include random ones that are redrawn on every submission,
+  so the same strategy can score differently from one submission to the next.
+  The fixed cases are the same every time.
+- The leaderboard ranks on the fixed cases only.
+  The practice leaderboard ranks by the score on the server's fixed practice cases alone,
+  not on all cases of a practice evaluation;
+  a practice result also shows this score, as **Fixed cases**, when the server reports it.
+- You can have one practice submission in flight at a time; submit again after the previous one has finished.
+- By default, a practice submission has a total limit of 600 s for all its case executions together,
+  and each case a limit of 300 s.
+  The total limit does not include installing the submission's packages.
+  These are settings of the evaluation server, and the organizers may change them.
+  A case that exceeds its limit shows as `TIMEOUT`.
+  When the total limit is exceeded, the case that was running and the remaining cases show as `TIMEOUT`,
+  and the submission status stays completed.
+- Use `tempfile` for temporary files, and do not use fixed paths or ports.
+- If you use a planning engine, note that `up-lpg` needs `setuptools<81` with the current releases.
+  Java-based engines need a Java runtime, and the server may apply a default heap setting to them.
+
+## Using the Command Line
+
+The command line is an alternative to the notebook for those who prefer it.
+
+### Running Your Strategy
+
+Run your strategy on the `nominal` scenario:
 
 ```sh
-uv run marimo edit app.py
+uv run autonomy-challenge run submission/strategy.py:MyStrategy
 ```
 
-The notebook shows the spacecraft, the mission, and the strategy API,
-edits `submission/strategy.py`, runs it on a public scenario, checks the submission,
-and submits it to an evaluation server.
-To use the grid layout, switch to app view with the **Toggle app view** button at the bottom right,
-or with `Ctrl+.` (`Cmd+.` on macOS).
+The command prints how the run ended and its metrics, computed from the true spacecraft state.
 
-## Checking Your Submission
+List the available scenarios and run another one:
+
+```sh
+uv run autonomy-challenge scenarios
+uv run autonomy-challenge run submission/strategy.py:MyStrategy --scenario thruster-degradation
+```
+
+Add `--json` to print the metrics as JSON.
+
+### Checking and Packing Your Submission
 
 Pack `submission/` and `pyproject.toml` into `submission.zip` in memory
 and evaluate it on all public scenarios the way an evaluation server runs it:
@@ -104,11 +174,9 @@ and packages of `pyproject.toml` that are missing are installed for the check on
 The command prints the scores, a summary, and a table of the cases.
 `uv run autonomy-challenge pack` writes `submission.zip` to a file without evaluating it.
 
-## Submitting to an Evaluation Server
+### Submitting to an Evaluation Server
 
-If your event provides an evaluation server, the organizers give you the URL of its API, such as `http://<host>:<port>/api/v1`,
-and, if it needs one, a token.
-A URL without a path, such as `http://<host>:<port>`, is taken as `http://<host>:<port>/api/v1`.
+Use the URL and the token that the organizers give you, as described in [Submitting from the Notebook](#submitting-from-the-notebook).
 
 ```sh
 export EVALUATION_SERVER_URL=<URL>
@@ -128,38 +196,10 @@ Each line has the id, kind, time, and server address, so you can find an id agai
 If more than one submission matches, it lists them.
 You are identified by `git config user.email` and `git config user.name`;
 `--participant-id` and `--participant-name` override them, and `uv run submit.py --help` lists all options.
-In the notebook, enter the server settings under **Evaluation server**.
-Submit from **Practice on hidden scenarios** for a practice evaluation,
-or from **Submit the final version** for the final submission.
-The notebook pre-fills the URL and the token from `EVALUATION_SERVER_URL` and `EVALUATION_SERVER_TOKEN`,
-and your email and name from `git config`.
 
 If the server has a leaderboard, `uv run submit.py --board` shows it,
 with whether final submissions are open and the time left, and the final ranking once it is published;
 `--mine` lists only your practice submissions.
-The **Leaderboard** section of the notebook shows the same.
-The practice leaderboard ranks by the score on the server's fixed practice cases alone, not on all cases of a practice evaluation;
-a practice result also shows this score, as **Fixed cases**, when the server reports it.
-
-### How Practice Evaluations Work
-
-- The result shows the last lines of the standard output and standard error of each case,
-  so `print` is a way to debug a strategy on the server.
-- The practice cases include random ones that are redrawn on every submission,
-  so the same strategy can score differently from one submission to the next.
-  The fixed cases are the same every time.
-- The leaderboard ranks on the fixed cases only.
-- You can have one practice submission in flight at a time; submit again after the previous one has finished.
-- By default, a practice submission has a total limit of 600 s for all its case executions together,
-  and each case a limit of 300 s.
-  The total limit does not include installing the submission's packages.
-  These are settings of the evaluation server, and the organizers may change them.
-  A case that exceeds its limit shows as `TIMEOUT`.
-  When the total limit is exceeded, the case that was running and the remaining cases show as `TIMEOUT`,
-  and the submission status stays completed.
-- Use `tempfile` for temporary files, and do not use fixed paths or ports.
-- If you use a planning engine, note that `up-lpg` needs `setuptools<81` with the current releases.
-  Java-based engines need a Java runtime, and the server may apply a default heap setting to them.
 
 ## Documentation
 
