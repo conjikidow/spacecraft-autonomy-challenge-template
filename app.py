@@ -72,6 +72,8 @@ with app.setup(hide_code=True):
         git_config,
         later_text,
         receipt_lines,
+        record_submission,
+        saved_note,
         score_text,
     )
 
@@ -1045,6 +1047,7 @@ def _(practice_button, server_form):
                 _form["participant_name"].strip(),
                 final=False,
             )
+            _problem = record_submission(_server, _receipt)
             with mo.status.spinner(
                 title="Waiting for the practice evaluation"
             ) as _spinner:
@@ -1073,6 +1076,7 @@ def _(practice_button, server_form):
                     title="Submission",
                 )
             )
+            _sections.append(mo.md(saved_note(_problem)))
             if _document.get("status") == "failed":
                 _sections.append(mo.md(f"**Not evaluated:** {_document.get('error')}"))
             elif _document.get("result") is not None:
@@ -1142,6 +1146,7 @@ def _(final_button, server_form):
                 _form["participant_name"].strip(),
                 final=True,
             )
+            _problem = record_submission(_server, _receipt)
         except (ServerError, SubmissionError, OSError) as error:
             _sections.append(
                 mo.callout(str(error), kind="danger", title="Could not submit")
@@ -1154,6 +1159,7 @@ def _(final_button, server_form):
                     title="Final submission received",
                 )
             )
+            _sections.append(mo.md(saved_note(_problem)))
             if _receipt.get("status") == "failed":
                 _sections.append(mo.md(f"**Not evaluated:** {_receipt.get('error')}"))
     mo.vstack(_sections)

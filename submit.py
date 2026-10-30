@@ -13,10 +13,17 @@ and `EVALUATION_SERVER_TOKEN`; an address without a path, such as
 identified by `git config user.email` and `git config user.name` unless
 `--participant-id` and `--participant-name` say otherwise.
 
+Every accepted submission is appended to `.submissions.log` in this directory, with its
+id, kind, time, and the server address. `--status` takes a full id, or the start or the
+end of one, such as the 8 characters of the leaderboard; it looks for it in the log
+first and then among your submissions at the server.
+
 The server speaks a small HTTP protocol, relative to its base URL:
 
     POST submissions?kind=practice|final&participant_id=...&participant_name=...
         body: submission.zip; answers with a receipt: id, status, sha256, ...
+    GET  submissions?participant_id=...
+        the receipts of the submissions of one participant, as a list
     GET  submissions/{id}
         the receipt with its current status; a completed practice submission also
         carries the result document of `autonomy-challenge check --json`
@@ -24,7 +31,8 @@ The server speaks a small HTTP protocol, relative to its base URL:
         them alone, by which the practice leaderboard ranks, under "fixed_score"
     GET  board/practice?limit=...&participant_id=...
         the practice leaderboard, if the server has one: "total" and "rows" of
-        rank, name, score, submitted_at, submission, and count
+        rank, name, score, submitted_at, submission (the last 8 characters of the
+        id), and count
     GET  board/final
         the final submissions, if the server has this board: "window", null if the
         server has no final submission window, with its phase (not_started, open,
@@ -38,6 +46,7 @@ import argparse
 import http.client
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -45,7 +54,7 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -53,6 +62,9 @@ from typing import Any
 PROJECT_DIR = Path(__file__).resolve().parent
 URL_VARIABLE = "EVALUATION_SERVER_URL"
 TOKEN_VARIABLE = "EVALUATION_SERVER_TOKEN"
+SUBMISSION_LOG = PROJECT_DIR / ".submissions.log"
+"""Where this project records the submissions the server accepted, one JSON object per
+line with the keys id, kind, time, and server."""
 PENDING_STATUSES = frozenset({"queued", "running"})
 TRANSIENT_HTTP_STATUSES = frozenset({502, 503, 504})
 """HTTP statuses of a server that is restarting or unreachable behind a proxy."""
@@ -116,13 +128,21 @@ class EvaluationServer:
         self.token = (token or "").strip() or None
         self.timeout_s = timeout_s
 
+    @property
+    def public_url(self) -> str:
+        """The base URL without any credentials in it, as recorded in the log."""
+        parts = urllib.parse.urlsplit(self.url)
+        return f"{parts.scheme}://{parts.netloc.rpartition('@')[2]}{parts.path}"
+
     def _request(
         self,
         method: str,
         path: str,
         params: dict[str, str] | None = None,
         data: bytes | None = None,
-    ) -> dict[str, Any]:
+        *,
+        expect: type = dict,
+    ) -> Any:
         url = urllib.parse.urljoin(self.url, path)
         if params:
             url += "?" + urllib.parse.urlencode(params)
@@ -167,8 +187,9 @@ class EvaluationServer:
                 f"{url.partition('?')[0]} answered {response.status} with "
                 f"{response.headers.get_content_type()}, not JSON; {API_URL_HINT}"
             ) from None
-        if not isinstance(answer, dict):
-            raise ServerError("the server sent an invalid answer: not a JSON object")
+        if not isinstance(answer, expect):
+            kind = "object" if expect is dict else "array"
+            raise ServerError(f"the server sent an invalid answer: not a JSON {kind}")
         return answer
 
     def submit(
@@ -191,6 +212,13 @@ class EvaluationServer:
         """The receipt of the submission `submission_id` with its current status."""
         quoted = urllib.parse.quote(submission_id, safe="")
         return self._request("GET", f"submissions/{quoted}")
+
+    def submissions(self, participant_id: str) -> list[dict[str, Any]]:
+        """The receipts of the submissions of the participant `participant_id`."""
+        answer = self._request(
+            "GET", "submissions", {"participant_id": participant_id}, expect=list
+        )
+        return [receipt for receipt in answer if isinstance(receipt, dict)]
 
     def wait(
         self,
@@ -396,11 +424,145 @@ def receipt_lines(receipt: dict[str, Any]) -> list[str]:
     ]
 
 
+class SubmissionIdError(Exception):
+    """Raised when a given id does not select exactly one submission."""
+
+
+FULL_ID = re.compile(r"[0-9a-f]{32}")
+HEX_ID = re.compile(r"[0-9a-f]{1,32}")
+
+
+def record_submission(
+    server: EvaluationServer,
+    receipt: dict[str, Any],
+    log_path: Path = SUBMISSION_LOG,
+) -> str | None:
+    """Append the accepted submission of `receipt` to the log at `log_path`.
+
+    Returns `None`, or the reason why it could not be written; a submission is
+    never lost to the log, so this does not raise.
+    """
+    entry = {
+        "id": receipt.get("id"),
+        "kind": receipt.get("kind"),
+        "time": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "server": server.public_url,
+    }
+    try:
+        with log_path.open("a", encoding="utf-8") as log:
+            log.write(json.dumps(entry) + "\n")
+    except OSError as error:
+        return str(error)
+    return None
+
+
+def logged_submissions(
+    server: EvaluationServer, log_path: Path = SUBMISSION_LOG
+) -> list[dict[str, Any]]:
+    """The entries of the log at `log_path` that were made at the same server."""
+    try:
+        lines = log_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    entries = []
+    for line in lines:
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if (
+            isinstance(entry, dict)
+            and isinstance(entry.get("id"), str)
+            and entry.get("server") == server.public_url
+        ):
+            entries.append(entry)
+    return entries
+
+
+def matching_submissions(
+    query: str, entries: Iterable[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """The entries with distinct ids that start or end with `query`, in order."""
+    found: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        submission_id = entry["id"].lower()
+        if submission_id.startswith(query) or submission_id.endswith(query):
+            found.setdefault(submission_id, entry)
+    return list(found.values())
+
+
+def resolve_submission_id(
+    query: str,
+    server: EvaluationServer,
+    participant_id: str | None,
+    log_path: Path = SUBMISSION_LOG,
+) -> str:
+    """The full id of the submission that `query` names.
+
+    `query` is a full id or the start or the end of one, such as the 8 characters
+    that the leaderboard shows. It is looked up in the log at `log_path` first and,
+    if the log has no such submission, among the submissions that `participant_id`
+    has made at the server. Raises `SubmissionIdError` unless exactly one matches.
+    """
+    text = query.strip().lower()
+    if FULL_ID.fullmatch(text):
+        return text
+    if not HEX_ID.fullmatch(text):
+        raise SubmissionIdError(
+            f"{query!r} is not a submission id; "
+            "use the id shown when you submitted, or its start or end"
+        )
+    found = matching_submissions(text, logged_submissions(server, log_path))
+    where = f"in {log_path.name}"
+    if not found and participant_id:
+        try:
+            receipts = server.submissions(participant_id)
+        except ServerError as error:
+            if error.status not in {404, 405}:  # the server cannot list submissions
+                raise
+            receipts = []
+        found = matching_submissions(
+            text,
+            (
+                {"id": r["id"], "kind": r.get("kind"), "time": r.get("received_at")}
+                for r in receipts
+                if isinstance(r.get("id"), str)
+            ),
+        )
+        where += " or among your submissions on the server"
+    elif not found:
+        where += (
+            "; to search your submissions on the server, "
+            "set git config user.email or pass --participant-id"
+        )
+    if not found:
+        raise SubmissionIdError(f"no submission matches {query!r} {where}")
+    if len(found) > 1:
+        shown = [
+            f"  {e['id']}  {e.get('kind') or ''}  {local_time(e.get('time'))}".rstrip()
+            for e in found[:10]
+        ]
+        more = [f"  ... and {len(found) - 10} more"] if len(found) > 10 else []
+        raise SubmissionIdError(
+            f"{query!r} matches {len(found)} submissions; give more characters:\n"
+            + "\n".join([*shown, *more])
+        )
+    return found[0]["id"].lower()
+
+
+def saved_note(problem: str | None) -> str:
+    """Where the id of a submission was saved, or why it could not be, given the
+    result of `record_submission`."""
+    if problem is None:
+        return f"The submission id is saved in `{SUBMISSION_LOG.name}`."
+    return f"Could not write `{SUBMISSION_LOG.name}`: {problem}. Note the id above."
+
+
 def later_text(receipt: dict[str, Any]) -> str:
     """How to fetch the result of the submission of `receipt` again later."""
     return (
         "The server keeps the submission; show it later with "
-        f"`uv run submit.py --status {receipt.get('id')}`"
+        f"`uv run submit.py --status {receipt.get('id')}`."
     )
 
 
@@ -425,7 +587,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--final", action="store_true", help="submit as your final submission"
     )
     action.add_argument(
-        "--status", metavar="ID", help="show the submission ID instead of submitting"
+        "--status",
+        metavar="ID",
+        help="show the submission ID, or its start or end, such as the 8 characters "
+        "of the leaderboard, instead of submitting",
     )
     action.add_argument(
         "--board",
@@ -475,7 +640,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.token or os.environ.get(TOKEN_VARIABLE),
         )
         if args.status is not None:
-            receipt = server.submission(args.status)
+            receipt = server.submission(
+                resolve_submission_id(args.status, server, participant_id)
+            )
+            problem = None
         else:
             archive = build_submission(PROJECT_DIR)
             kind = "final" if args.final else "practice"
@@ -483,7 +651,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             receipt = server.submit(
                 archive, participant_id, participant_name, final=args.final
             )
+            problem = record_submission(server, receipt)
         print("\n".join(receipt_lines(receipt)))
+        if args.status is None:
+            print(f"\n{saved_note(problem)}", later_text(receipt))
         if receipt.get("kind") == "final":
             return 0
         document = server.wait(
@@ -492,7 +663,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             on_status=lambda status: print(f"Status: {status}"),
             on_retry=lambda message: print(message, file=sys.stderr),
         )
-    except (ServerError, SubmissionError, OSError) as error:
+    except (ServerError, SubmissionIdError, SubmissionError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         if receipt is not None:
             print(later_text(receipt), file=sys.stderr)

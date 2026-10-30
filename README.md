@@ -104,6 +104,11 @@ On Windows, or instead of the environment variables, pass `--server <URL>` and `
 If you stop waiting for a practice evaluation, it continues on the server; `uv run submit.py --status <id>` shows it later.
 If the server stops answering while you wait, for example because it restarts, the client tries again for up to five minutes.
 After any error that follows the upload, it prints the `--status` command that shows the result later.
+Every accepted submission, from the command line or the notebook, is appended to `.submissions.log` in the project directory.
+Each line has the id, kind, time, and server address, so you can find an id again, and git ignores the file.
+`<id>` can be the full id or its start or end, such as the 8 characters that the leaderboard shows.
+`submit.py` looks for it in `.submissions.log` first and then among your submissions on the server.
+If more than one submission matches, it lists them.
 You are identified by `git config user.email` and `git config user.name`;
 `--participant-id` and `--participant-name` override them, and `uv run submit.py --help` lists all options.
 In the notebook, enter the server settings under **Evaluation server**.
