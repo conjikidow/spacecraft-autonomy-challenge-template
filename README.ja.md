@@ -97,6 +97,8 @@ uv run submit.py --final    # 最終提出：受付票を表示する
 Windows の場合や環境変数を使わない場合は，`--server <URL>` と `--token <トークン>` を指定してください。
 練習評価の結果を待つのをやめても，評価はサーバー上で続きます。
 あとから `uv run submit.py --status <ID>` で確認できます。
+待っている間にサーバーが応答しなくなった場合（再起動など）は，最大 5 分間再試行します。
+アップロード後にエラーが起きたときは，あとで結果を表示するための `--status` コマンドを出力します。
 提出者は `git config user.email` と `git config user.name` で識別されます。
 `--participant-id` と `--participant-name` で上書きでき，`uv run submit.py --help` ですべてのオプションを確認できます。
 ノートブックでは，**Evaluation server** セクションにサーバーの設定を入力します。

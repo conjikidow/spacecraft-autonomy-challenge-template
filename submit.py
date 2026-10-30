@@ -54,6 +54,11 @@ PROJECT_DIR = Path(__file__).resolve().parent
 URL_VARIABLE = "EVALUATION_SERVER_URL"
 TOKEN_VARIABLE = "EVALUATION_SERVER_TOKEN"
 PENDING_STATUSES = frozenset({"queued", "running"})
+TRANSIENT_HTTP_STATUSES = frozenset({502, 503, 504})
+"""HTTP statuses of a server that is restarting or unreachable behind a proxy."""
+RETRY_S = 300.0
+"""Longest time to wait for a server that does not answer while waiting for a result."""
+MAX_BACKOFF_S = 15.0
 UPLOAD_BYTES_PER_S = 100_000
 """Slowest upload rate to allow for, which extends the timeout of large submissions."""
 API_URL_HINT = (
@@ -66,11 +71,16 @@ class ServerError(Exception):
     """Raised when the evaluation server cannot be reached or rejects a request.
 
     `status` is the HTTP status of a rejection, `None` if there was no answer.
+    `transient` is true if asking again later may succeed: the server did not answer
+    or is restarting.
     """
 
-    def __init__(self, message: str, status: int | None = None):
+    def __init__(
+        self, message: str, status: int | None = None, *, transient: bool = False
+    ):
         super().__init__(message)
         self.status = status
+        self.transient = transient
 
 
 def git_config(key: str, directory: Path = PROJECT_DIR) -> str | None:
@@ -137,12 +147,19 @@ class EvaluationServer:
                 message = f"the server answered 404 at {target}; {API_URL_HINT}"
             else:
                 message = f"the server answered {error.code}: {detail or error.reason}"
-            raise ServerError(message, error.code) from None
+            raise ServerError(
+                message, error.code, transient=error.code in TRANSIENT_HTTP_STATUSES
+            ) from None
         except (urllib.error.URLError, OSError) as error:
             reason = getattr(error, "reason", error)
-            raise ServerError(f"cannot reach {self.url}: {reason}") from None
+            raise ServerError(
+                f"cannot reach {self.url}: {reason}", transient=True
+            ) from None
         except (http.client.HTTPException, ValueError) as error:
-            raise ServerError(f"the server sent an invalid answer: {error!r}") from None
+            raise ServerError(
+                f"the server sent an invalid answer: {error!r}",
+                transient=isinstance(error, http.client.HTTPException),
+            ) from None
         try:
             answer = json.loads(body)
         except ValueError:
@@ -179,19 +196,59 @@ class EvaluationServer:
         self,
         submission_id: str,
         *,
+        receipt: dict[str, Any] | None = None,
         poll_s: float = 2.0,
+        retry_s: float = RETRY_S,
         on_status: Callable[[str], None] | None = None,
+        on_retry: Callable[[str], None] | None = None,
     ) -> dict[str, Any]:
-        """Poll the submission until its evaluation has ended, and return it."""
-        status = None
+        """Poll the submission until its evaluation has ended, and return it.
+
+        `receipt` is the document the caller already has: its status is not reported
+        again, and the first request is made after one poll interval. If the server
+        does not answer (it may be restarting), ask again with a growing delay for up
+        to `retry_s` seconds, telling `on_retry` once when this starts and once when
+        the server answers again; after that, or on any other error, raise
+        `ServerError`.
+        """
+        document = receipt
+        status = None if receipt is None else receipt.get("status")
+        down_since = None
+        failures = 0
         while True:
-            document = self.submission(submission_id)
+            if document is None:
+                try:
+                    document = self.submission(submission_id)
+                except ServerError as error:
+                    if not error.transient:
+                        raise
+                    now = time.monotonic()
+                    if down_since is None:
+                        down_since = now
+                        if on_retry is not None:
+                            on_retry(
+                                f"{error}; trying again for up to {clock(retry_s)}"
+                            )
+                    left = retry_s - (now - down_since)
+                    if left <= 0:
+                        raise ServerError(
+                            f"{error} (no answer for {clock(retry_s)}, giving up)"
+                        ) from None
+                    time.sleep(min(poll_s * 2**failures, MAX_BACKOFF_S, left))
+                    failures += 1
+                    continue
+                if down_since is not None:
+                    down_since = None
+                    failures = 0
+                    if on_retry is not None:
+                        on_retry("The server answers again")
             if document.get("status") != status:
                 status = document.get("status")
                 if on_status is not None:
                     on_status(str(status))
             if status not in PENDING_STATUSES:
                 return document
+            document = None
             time.sleep(poll_s)
 
     def practice_board(
@@ -339,6 +396,25 @@ def receipt_lines(receipt: dict[str, Any]) -> list[str]:
     ]
 
 
+def later_text(receipt: dict[str, Any]) -> str:
+    """How to fetch the result of the submission of `receipt` again later."""
+    return (
+        "The server keeps the submission; show it later with "
+        f"`uv run submit.py --status {receipt.get('id')}`"
+    )
+
+
+def without_header(report: str) -> str:
+    """`report` from `format_check_report` without its `Submission:` and `SHA-256:`
+    lines, which the receipt has already shown, and without leading blank lines."""
+    lines = report.split("\n")
+    start = 0
+    for prefix in ("Submission:", "SHA-256:"):
+        if start < len(lines) and lines[start].startswith(prefix):
+            start += 1
+    return "\n".join(lines[start:]).lstrip("\n")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Pack the project, submit it, and show the receipt or the practice result."""
     parser = argparse.ArgumentParser(
@@ -412,19 +488,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         document = server.wait(
             str(receipt.get("id")),
+            receipt=receipt,
             on_status=lambda status: print(f"Status: {status}"),
+            on_retry=lambda message: print(message, file=sys.stderr),
         )
     except (ServerError, SubmissionError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
+        if receipt is not None:
+            print(later_text(receipt), file=sys.stderr)
         return 2
     except KeyboardInterrupt:
-        later = (
-            ""
-            if receipt is None
-            else "; the server keeps the submission, see it later with "
-            f"`uv run submit.py --status {receipt.get('id')}`"
-        )
-        print(f"interrupted{later}", file=sys.stderr)
+        print("interrupted", file=sys.stderr)
+        if receipt is not None:
+            print(later_text(receipt), file=sys.stderr)
         return 130
     if document.get("status") != "completed":
         print(f"The evaluation {document.get('status')}: {document.get('error')}")
@@ -433,9 +509,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         result = EvaluationResult.from_dict(document["result"])
     except (KeyError, TypeError, ResultFormatError) as error:
         print(f"error: the server sent an invalid result: {error}", file=sys.stderr)
+        print(later_text(receipt), file=sys.stderr)
         return 2
     print()
-    print(format_check_report(str(receipt.get("id")), result))
+    print(without_header(format_check_report(str(receipt.get("id")), result)))
     fixed = score_text(document.get("fixed_score"))
     if fixed:
         print(f"\nFixed cases: {fixed} (the leaderboard ranks by this score)")

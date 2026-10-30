@@ -70,6 +70,7 @@ with app.setup(hide_code=True):
         boards,
         final_status,
         git_config,
+        later_text,
         receipt_lines,
         score_text,
     )
@@ -1031,6 +1032,7 @@ def _(practice_button, server_form):
         # Shown now, so the spinner appears below the heading instead of replacing it.
         mo.output.replace(mo.vstack(_sections))
         _form = server_form.value
+        _receipt = None
         try:
             if not (
                 _form["participant_id"].strip() and _form["participant_name"].strip()
@@ -1049,10 +1051,19 @@ def _(practice_button, server_form):
                 _document = _server.wait(
                     _receipt["id"],
                     on_status=lambda status: _spinner.update(subtitle=status),
+                    on_retry=lambda message: _spinner.update(subtitle=message),
                 )
         except (ServerError, SubmissionError, OSError) as error:
             _sections.append(
-                mo.callout(str(error), kind="danger", title="Could not submit")
+                mo.callout(
+                    str(error)
+                    if _receipt is None
+                    else f"{error}\n\n{later_text(_receipt)}",
+                    kind="danger",
+                    title="Could not submit"
+                    if _receipt is None
+                    else "Could not follow the evaluation",
+                )
             )
         else:
             _sections.append(

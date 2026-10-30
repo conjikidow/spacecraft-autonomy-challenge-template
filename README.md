@@ -102,6 +102,8 @@ uv run submit.py --final    # final submission: shows the receipt
 
 On Windows, or instead of the environment variables, pass `--server <URL>` and `--token <token>`.
 If you stop waiting for a practice evaluation, it continues on the server; `uv run submit.py --status <id>` shows it later.
+If the server stops answering while you wait, for example because it restarts, the client tries again for up to five minutes.
+After any error that follows the upload, it prints the `--status` command that shows the result later.
 You are identified by `git config user.email` and `git config user.name`;
 `--participant-id` and `--participant-name` override them, and `uv run submit.py --help` lists all options.
 In the notebook, enter the server settings under **Evaluation server**.
