@@ -29,6 +29,7 @@ with app.setup(hide_code=True):
         Commander,
         PropulsionMode,
         SetHeater,
+        SetMomentumDump,
         SetPropulsionMode,
         Strategy,
         Telemetry,
@@ -661,12 +662,27 @@ def time_series_chart(result):
                 changes["Heater"].append(
                     (scheduled.time_s, "Heater on" if on else None)
                 )
-    # The dump switches itself off, so its intervals come from the true trajectory.
+            case SetMomentumDump(on=on):
+                changes["Dump"].append(
+                    (scheduled.time_s, "Momentum dump on" if on else None)
+                )
+    # The dump also switches itself off. A command shows in the trajectory one event
+    # late, so only a switch-off with no command off in between is added.
+    commanded_off_s = [
+        scheduled.time_s
+        for scheduled in result.executed_commands
+        if scheduled.command == SetMomentumDump(on=False)
+    ]
     for previous, state in itertools.pairwise(result.trajectory):
-        if state.momentum_dump_on != previous.momentum_dump_on:
-            changes["Dump"].append(
-                (state.time_s, "Momentum dump on" if state.momentum_dump_on else None)
+        if (
+            previous.momentum_dump_on
+            and not state.momentum_dump_on
+            and not any(
+                previous.time_s <= time_s < state.time_s for time_s in commanded_off_s
             )
+        ):
+            changes["Dump"].append((state.time_s, None))
+    changes["Dump"].sort(key=lambda change: change[0])
     bars = [
         {"channel": channel, "state": state, "start_s": start_s, "end_s": end_s}
         for channel, values in changes.items()
