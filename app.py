@@ -772,7 +772,7 @@ def _(
             file_editor,
         ]
     )
-    return
+    return new_name, confirm, create_button, delete_button, file_editor
 
 
 @app.cell(hide_code=True)
