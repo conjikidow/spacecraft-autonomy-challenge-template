@@ -61,6 +61,23 @@ Add the Python packages you need with uv, for example:
 uv add numpy
 ```
 
+## Strategy API
+
+A strategy schedules commands with `commander.schedule(time_s, command)` and reads the telemetry it is given.
+`brief.nominal_initial_telemetry` holds the nominal initial state; the actual readings may deviate from it.
+
+| Command                   | Argument                 | Effect                                                                         |
+| ------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
+| `SetPropulsionMode(mode)` | `mode`: `PropulsionMode` | Selects the propulsion mode                                                    |
+| `SetHeater(on)`           | `on`: `bool`             | Switches the propulsion heater on or off                                       |
+| `SetMomentumDump(on)`     | `on`: `bool`             | Switches the momentum dump on or off                                           |
+| `DeclareCompletion()`     | none                     | Declares that the strategy considers the maneuver complete, which ends the run |
+
+`PropulsionMode` has the members `OFF`, `THRUSTER_1`, and `THRUSTER_2`.
+`Telemetry` has the fields `time_s`, `delta_v_mps`, `propulsion_temperature_c`, `battery_energy_wh`,
+`wheel_momentum_nms`, `heater_on`, `propulsion_mode`, and `momentum_dump_on`.
+The core documentation linked below describes the commands, the brief, and the spacecraft model in detail.
+
 ## Working in the Notebook
 
 ```sh
@@ -124,20 +141,31 @@ The **Leaderboard** section of the notebook shows the same.
 The practice leaderboard ranks by the score on the server's fixed practice cases alone, not on all cases of a practice evaluation;
 a practice result also shows this score, as **Fixed cases**, when the server reports it.
 
+### How Practice Evaluations Work
+
+- The result shows the last lines of the standard output and standard error of each case,
+  so `print` is a way to debug a strategy on the server.
+- The practice cases include random ones that are redrawn on every submission,
+  so the same strategy can score differently from one submission to the next.
+  The fixed cases are the same every time.
+- The leaderboard ranks on the fixed cases only.
+- You can have one practice submission in flight at a time; submit again after the previous one has finished.
+- The server may stop a practice submission that takes too long; such cases show as `TIMEOUT`.
+
 ## Documentation
 
 The core repository documents the API and the challenge, at the commit this template uses:
 
-- [Writing a Strategy](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/strategy.md): lifecycle, mission brief, and commander
-- [Commands and Timeline](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/timeline.md): command types and ordering rules
-- [Spacecraft Model](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/spacecraft-model.md): state, dynamics, and telemetry
-- [Simulation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/simulation.md): order of events and termination
-- [Challenge Problem](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/challenge.md): the problem and its public scenarios
-- [Evaluation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/evaluation.md): the metrics printed after a run
-- [Command-Line Runner](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/README.md#command-line-runner): options and exit status of `run`, `pack`, and `check`
-- [Submission Archives](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/submission.md): what `submission.zip` contains
-- [Participant Packages](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/dependencies.md): how the packages of `pyproject.toml` are reproduced
-- [Scoring](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/scoring.md): how a case and a suite are scored
+- [Writing a Strategy](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/strategy.md): lifecycle, mission brief, and commander
+- [Commands and Timeline](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/timeline.md): command types and ordering rules
+- [Spacecraft Model](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/spacecraft-model.md): state, dynamics, and telemetry
+- [Simulation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/simulation.md): order of events and termination
+- [Challenge Problem](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/challenge.md): the problem and its public scenarios
+- [Evaluation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/evaluation.md): the metrics printed after a run
+- [Command-Line Runner](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/README.md#command-line-runner): options and exit status of `run`, `pack`, and `check`
+- [Submission Archives](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/submission.md): what `submission.zip` contains
+- [Participant Packages](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/dependencies.md): how the packages of `pyproject.toml` are reproduced
+- [Scoring](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/scoring.md): how a case and a suite are scored
 
 ## License
 

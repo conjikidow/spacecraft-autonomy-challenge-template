@@ -29,6 +29,7 @@ with app.setup(hide_code=True):
         Commander,
         PropulsionMode,
         SetHeater,
+        SetMomentumDump,
         SetPropulsionMode,
         Strategy,
         Telemetry,
@@ -346,7 +347,9 @@ def _():
     _contents = {
         "brief": (
             "Values under **Mission**, e.g. `brief.decision_period_s`; "
-            "`brief.nominal_parameters` under **Nominal parameters**"
+            "`brief.nominal_parameters` under **Nominal parameters**; "
+            "`brief.nominal_initial_telemetry` is the nominal initial state "
+            "under **Initial state**"
         ),
         "telemetry": (
             "Fields under **Spacecraft** at the callback time, "
@@ -548,7 +551,7 @@ def time_series_chart(result):
     """Chart the true state of a run over time, with the limits it must respect.
 
     States are sampled once per `SAMPLE_PERIOD_S`, plus the last one. The strip at the
-    bottom shows the propulsion mode and the heater from the executed commands.
+    bottom shows the propulsion mode, the heater, and the momentum dump.
     """
     problem = result.scenario.problem
     limits = problem.limits
@@ -649,6 +652,7 @@ def time_series_chart(result):
     changes = {
         "Mode": [(0.0, initial.propulsion_mode.value)],
         "Heater": [(0.0, "Heater on" if initial.heater_on else None)],
+        "Dump": [],
     }
     for scheduled in result.executed_commands:
         match scheduled.command:
@@ -658,6 +662,26 @@ def time_series_chart(result):
                 changes["Heater"].append(
                     (scheduled.time_s, "Heater on" if on else None)
                 )
+    # A command runs after the state of its time is recorded, and the dump switches
+    # itself off within a step. The dump is active from each recorded time on when it
+    # is on after the commands of that time.
+    dump_commands = {
+        scheduled.time_s: scheduled.command.on
+        for scheduled in result.executed_commands
+        if isinstance(scheduled.command, SetMomentumDump)
+    }
+    dump_active = [
+        dump_commands.get(state.time_s, state.momentum_dump_on)
+        for state in result.trajectory
+    ]
+    changes["Dump"].append((0.0, "Momentum dump on" if dump_active[0] else None))
+    for state, active, previous_active in zip(
+        result.trajectory[1:], dump_active[1:], dump_active, strict=False
+    ):
+        if active != previous_active:
+            changes["Dump"].append(
+                (state.time_s, "Momentum dump on" if active else None)
+            )
     bars = [
         {"channel": channel, "state": state, "start_s": start_s, "end_s": end_s}
         for channel, values in changes.items()
@@ -681,8 +705,9 @@ def time_series_chart(result):
                         PropulsionMode.THRUSTER_1.value,
                         PropulsionMode.THRUSTER_2.value,
                         "Heater on",
+                        "Momentum dump on",
                     ],
-                    range=[line_color, "#eb6834", "#1baf7a"],
+                    range=[line_color, "#eb6834", "#1baf7a", "#9467bd"],
                 ),
                 legend=alt.Legend(title=None, orient="bottom"),
             ),
@@ -700,12 +725,12 @@ def time_series_chart(result):
             *(_panel(*panel) for panel in panels),
             alt.layer(strip, cursor).properties(
                 title=alt.Title(
-                    "Propulsion mode and heater (blank: off)",
+                    "Propulsion mode, heater, and momentum dump (blank: off)",
                     anchor="start",
                     fontSize=12,
                 ),
                 width=width,
-                height=44,
+                height=60,
             ),
             data=data,
             autosize=alt.AutoSizeParams(type="fit-x", contains="padding"),
@@ -1027,7 +1052,15 @@ def _():
 def _(practice_button, server_form):
     _sections = [
         mo.md("## Practice on hidden scenarios"),
-        mo.md("Scored on the evaluation server; ranked on the leaderboard."),
+        mo.md(
+            "Scored on the evaluation server; ranked on the leaderboard "
+            "by the fixed cases alone. "
+            "The random cases are redrawn on every submission. "
+            "The result shows the last lines of the output of each case, "
+            "and you can have one practice submission in flight at a time. "
+            "The server may stop a practice submission that takes too long; "
+            "such cases show as `TIMEOUT`."
+        ),
         practice_button,
     ]
     if practice_button.value:

@@ -61,6 +61,24 @@ uv run autonomy-challenge run submission/strategy.py:MyStrategy --scenario thrus
 uv add numpy
 ```
 
+## 戦略 API
+
+戦略は `commander.schedule(time_s, command)` でコマンドをスケジュールし，渡されるテレメトリを読みます。
+`brief.nominal_initial_telemetry` は名目上の初期状態です。
+実際の測定値はこれとずれることがあります。
+
+| コマンド                  | 引数                     | 効果                                                     |
+| ------------------------- | ------------------------ | -------------------------------------------------------- |
+| `SetPropulsionMode(mode)` | `mode`: `PropulsionMode` | 推進モードを選択する                                     |
+| `SetHeater(on)`           | `on`: `bool`             | 推進系のヒータをオンまたはオフにする                     |
+| `SetMomentumDump(on)`     | `on`: `bool`             | モーメンタムダンプをオンまたはオフにする                 |
+| `DeclareCompletion()`     | なし                     | 戦略が操作を完了したとみなすことを宣言し，実行を終了する |
+
+`PropulsionMode` のメンバーは `OFF`，`THRUSTER_1`，`THRUSTER_2` です。
+`Telemetry` のフィールドは `time_s`，`delta_v_mps`，`propulsion_temperature_c`，`battery_energy_wh`，
+`wheel_momentum_nms`，`heater_on`，`propulsion_mode`，`momentum_dump_on` です。
+コマンド，ブリーフ，宇宙機モデルの詳細は，下にリンクした core のドキュメントを参照してください。
+
 ## ノートブックでの作業
 
 ```sh
@@ -117,21 +135,31 @@ URL とトークンは `EVALUATION_SERVER_URL` と `EVALUATION_SERVER_TOKEN` か
 練習の順位表は，練習評価のすべてのケースではなく，サーバーの固定の練習ケースだけでの得点で順位を付けます。
 サーバーがこの得点を返す場合は，練習評価の結果にも **Fixed cases** として表示されます。
 
+### 練習評価の仕組み
+
+- 結果には各ケースの標準出力と標準エラー出力の最後の数行が表示されるため，サーバー上での戦略のデバッグには `print` が使えます。
+- 練習ケースには乱数で生成されるものが含まれ，提出のたびに引き直されます。
+  そのため，同じ戦略でも提出ごとに得点が変わることがあります。
+  固定ケースは毎回同じです。
+- 順位表は固定ケースだけで順位を付けます。
+- 実行中の練習提出は参加者ごとに 1 件までです。前の提出が終わってから，もう一度提出してください。
+- サーバーは，時間がかかりすぎる練習提出を停止することがあります。そのケースは `TIMEOUT` と表示されます。
+
 ## ドキュメント
 
 API とチャレンジについては，core リポジトリのドキュメントを参照してください。
 リンク先は，このテンプレートが使用している core のバージョンのドキュメントです。
 
-- [戦略の書き方](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
-- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/timeline.ja.md)：コマンドの種類と順序規則
-- [宇宙機モデル](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
-- [シミュレーション](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/simulation.ja.md)：イベントの順序と終了条件
-- [チャレンジ問題](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
-- [評価](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
-- [コマンドラインツール](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/README.ja.md#コマンドラインツール)：`run`，`pack`，`check` のオプションと終了ステータス
-- [提出アーカイブ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/submission.ja.md)：`submission.zip` の内容
-- [参加者のパッケージ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/dependencies.ja.md)：`pyproject.toml` のパッケージの再現方法
-- [得点](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v1.3.2/docs/scoring.ja.md)：評価ケースと `Suite` の得点の計算方法
+- [戦略の書き方](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
+- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/timeline.ja.md)：コマンドの種類と順序規則
+- [宇宙機モデル](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
+- [シミュレーション](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/simulation.ja.md)：イベントの順序と終了条件
+- [チャレンジ問題](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
+- [評価](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
+- [コマンドラインツール](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/README.ja.md#コマンドラインツール)：`run`，`pack`，`check` のオプションと終了ステータス
+- [提出アーカイブ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/submission.ja.md)：`submission.zip` の内容
+- [参加者のパッケージ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/dependencies.ja.md)：`pyproject.toml` のパッケージの再現方法
+- [得点](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/scoring.ja.md)：評価ケースと `Suite` の得点の計算方法
 
 ## ライセンス
 
