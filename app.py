@@ -148,6 +148,118 @@ with app.setup(hide_code=True):
         def _mime_(self):
             return "application/vnd.vegalite.v6+json", self.spec
 
+    def display_name(path):
+        """Return a path under `submission/`, such as `submission/strategy.py`."""
+        return "submission/" + path.relative_to(SUBMISSION_DIR).as_posix()
+
+    def submission_path(text):
+        """Return the path under `submission/` that `text` names, or raise."""
+        name = text.strip()
+        # Empty parts cover an empty name and a leading or trailing "/".
+        if "\\" in name or any(part in ("", ".", "..") for part in name.split("/")):
+            raise ValueError(
+                "Enter a path relative to submission/, such as helpers/model.py."
+            )
+        try:
+            path = (SUBMISSION_DIR / name).resolve()
+        except RuntimeError:
+            raise ValueError("The path contains a symbolic link loop.") from None
+        if path == SUBMISSION_DIR or not path.is_relative_to(SUBMISSION_DIR):
+            raise ValueError("The path must stay inside submission/.")
+        # The submission archive leaves these out, so they would not be evaluated.
+        if "__pycache__" in path.relative_to(SUBMISSION_DIR).parts or path.suffix in (
+            ".pyc",
+            ".pyo",
+        ):
+            raise ValueError("Bytecode and __pycache__ are not part of the submission.")
+        return path
+
+    def save_on_change(path, unsaved, on_error, on_saved):
+        """Return an `on_change` callback that writes the editor's text to `path`.
+
+        The text stays in `unsaved` until it is written, so that a failed save does not
+        lose it when the editor is created again.
+        """
+
+        def save(text):
+            was_pending = path in unsaved
+            unsaved[path] = text
+            if not writable_in_submission(path):
+                on_error(path, ValueError("it lies outside submission/ or is a link"))
+                return
+            try:
+                try:
+                    same = path.read_text(encoding="utf-8") == text
+                except (OSError, ValueError):
+                    same = False
+                if not same:
+                    path.write_text(text, encoding="utf-8")
+            except OSError as error:
+                on_error(path, error)
+            else:
+                unsaved.pop(path, None)
+                on_saved(was_pending)
+
+        return save
+
+    # Larger files are not loaded into the editor.
+    EDITOR_MAX_BYTES = 1024 * 1024
+
+    def bytecode_only(path):
+        """Return True if `path` is an empty folder or holds only bytecode, recursively.
+
+        Symbolic links are never bytecode, so nothing outside `submission/` is touched.
+        """
+        if path.is_symlink():
+            return False
+        if path.is_dir():
+            return all(bytecode_only(child) for child in path.iterdir())
+        return path.suffix in (".pyc", ".pyo")
+
+    def inside_submission(item):
+        """Return True if `item` exists and resolves to a path under `submission/`."""
+        try:
+            return item.exists() and item.resolve().is_relative_to(SUBMISSION_DIR)
+        except (OSError, RuntimeError):
+            return False
+
+    def writable_in_submission(path):
+        """Return True if writing `path` stays inside `submission/`.
+
+        A link is never written through, so a link to a file elsewhere is refused.
+        """
+        try:
+            return not path.is_symlink() and path.parent.resolve().is_relative_to(
+                SUBMISSION_DIR
+            )
+        except (OSError, RuntimeError):
+            return False
+
+    def is_strategy(item):
+        """Return True if `item` is `submission/strategy.py`, or the file it links to.
+
+        A link to `strategy.py` is not protected: deleting it removes only the link.
+        """
+        if item is None:
+            return False
+        try:
+            if item.is_symlink():
+                return item.parent.resolve() / item.name == STRATEGY_FILE
+            return item.resolve() == STRATEGY_FILE.resolve()
+        except (OSError, RuntimeError):
+            return False
+
+    def remove_bytecode(path):
+        """Remove `path` and everything under it, rechecking each entry as it goes."""
+        if not bytecode_only(path):
+            raise ValueError(f"{path.name} is no longer bytecode only.")
+        if path.is_dir():
+            for child in path.iterdir():
+                remove_bytecode(child)
+            path.rmdir()
+        else:
+            path.unlink()
+
 
 @app.cell(hide_code=True)
 def _():
@@ -189,9 +301,9 @@ def _():
             model weights, configuration, data) also belongs under `submission/`.
             """),
             mo.md(r"""
-            Edit `submission/strategy.py` in the **Strategy** editor below.
-            Add or edit any other file under `submission/` from the Files panel
-            or your own editor, and add packages with `uv add`.
+            Edit the files under `submission/` in the **Submission** section below,
+            starting with `submission/strategy.py`, or in your own editor,
+            and add packages with `uv add`.
             """),
             mo.md(r"""
             Then test and submit it in these sections, each using the current files:
@@ -399,39 +511,268 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    # Send the value only when the editor loses focus, so the file is written once
-    # per edit instead of on every keystroke.
-    strategy_editor = mo.ui.code_editor(
-        value=STRATEGY_FILE.read_text(encoding="utf-8"),
-        language="python",
-        debounce=True,
+    # Bumping the revision re-creates the file tree, so that its listing is read again.
+    get_revision, set_revision = mo.state(0, allow_self_loops=True)
+    get_notice, set_notice = mo.state(None, allow_self_loops=True)
+    get_pending, set_pending = mo.state(0, allow_self_loops=True)
+    # The item the tree shows as selected, which a re-created tree starts from, and the
+    # last file selected, which is the one being edited.
+    selection = {"path": STRATEGY_FILE, "file": STRATEGY_FILE}
+    # Text typed in the editor and not saved yet, by file.
+    unsaved = {}
+    # Typed in the operations column, kept when the cell is re-created.
+    typed = {"name": "", "confirm": None}
+    return (
+        get_notice,
+        get_pending,
+        get_revision,
+        selection,
+        set_notice,
+        set_pending,
+        set_revision,
+        typed,
+        unsaved,
     )
-    return (strategy_editor,)
 
 
 @app.cell(hide_code=True)
-def _(strategy_editor):
-    _sections = [
-        mo.md("## Strategy"),
-        mo.md(
-            """
-            Saved to `submission/strategy.py` when the editor loses focus.
-            After editing the file elsewhere, restart the kernel and run all cells.
-            """
+def _(get_revision, selection):
+    _ = get_revision()
+
+    def _remember(files):
+        if files:
+            selection["path"] = files[0].path
+            if files[0].path.is_file():
+                selection["file"] = files[0].path
+
+    # Bytecode and __pycache__ files are left out, as `build_submission` leaves them out
+    # of the archive, so a __pycache__ folder shows as empty. Empty folders are shown,
+    # so that a folder stays listed after its last file is deleted.
+    submission_files = mo.ui.file_browser(
+        initial_path=SUBMISSION_DIR,
+        value=next(
+            (p for p in (selection["path"], STRATEGY_FILE) if inside_submission(p)),
+            None,
         ),
-        strategy_editor,
-    ]
-    try:
-        if strategy_editor.value != STRATEGY_FILE.read_text(encoding="utf-8"):
-            STRATEGY_FILE.write_text(strategy_editor.value, encoding="utf-8")
-    except OSError as error:
-        _sections.append(
-            mo.callout(
-                str(error), kind="danger", title="Could not save submission/strategy.py"
-            )
+        multiple=False,
+        selection_mode="all",
+        filter=lambda path: (
+            path.suffix not in (".pyc", ".pyo")
+            and "__pycache__" not in path.relative_to(SUBMISSION_DIR).parts
+        ),
+        on_change=_remember,
+    )
+    return (submission_files,)
+
+
+@app.cell(hide_code=True)
+def _(
+    get_notice,
+    get_pending,
+    selection,
+    set_notice,
+    set_pending,
+    set_revision,
+    submission_files,
+    typed,
+    unsaved,
+):
+    _ = get_pending()
+    # Delete acts on the item selected in the tree, which is none after a click on the
+    # selected item. The file being edited stays the last file selected.
+    _item = submission_files.path()
+    _current = selection["file"]
+    # Only files that stay inside submission/ are edited.
+    if not _current.is_file() or not inside_submission(_current):
+        _current = STRATEGY_FILE
+
+    new_name = mo.ui.text(
+        value=typed["name"],
+        placeholder="helpers/model.py",
+        label="New file",
+        on_change=lambda value: typed.__setitem__("name", value),
+    )
+    confirm = mo.ui.checkbox(
+        value=_item is not None and typed["confirm"] == _item,
+        label="Confirm deletion",
+        on_change=lambda value: typed.__setitem__("confirm", _item if value else None),
+    )
+
+    def _create(_):
+        set_notice(None)
+        try:
+            _target = submission_path(new_name.value)
+            if _target.exists():
+                raise ValueError(f"{display_name(_target)} already exists.")
+            _target.parent.mkdir(parents=True, exist_ok=True)
+            _target.touch()
+        except (ValueError, OSError) as error:
+            set_notice(("danger", "Could not create the file", str(error)))
+        else:
+            typed["name"] = ""
+            selection["path"] = selection["file"] = _target
+            set_revision(lambda value: value + 1)
+
+    def _delete(_):
+        set_notice(None)
+        if not confirm.value:
+            set_notice(("warn", "Not deleted", 'Tick "Confirm deletion" first.'))
+            return
+        try:
+            if _item is None or is_strategy(_item):
+                raise ValueError("submission/strategy.py cannot be deleted.")
+            try:
+                parent_inside = _item.parent.resolve().is_relative_to(SUBMISSION_DIR)
+            except (OSError, RuntimeError):
+                parent_inside = False
+            if not parent_inside:
+                raise ValueError("The item lies outside submission/.")
+            if _item.is_dir() and not _item.is_symlink():
+                # Only an empty folder, or one holding only bytecode, is removed, so
+                # that no source file is lost by a click.
+                if not bytecode_only(_item):
+                    raise ValueError(
+                        f"{display_name(_item)} is not empty. Delete its files first. "
+                        "Remove files hidden in __pycache__ outside the notebook."
+                    )
+                remove_bytecode(_item)
+            else:
+                _item.unlink()
+        except (ValueError, OSError) as error:
+            set_notice(("danger", "Could not delete", str(error)))
+        else:
+            typed["confirm"] = None
+            for stale in [p for p in unsaved if p == _item or _item in p.parents]:
+                del unsaved[stale]
+            edited = selection["file"]
+            if edited == _item or _item in edited.parents:
+                selection["file"] = STRATEGY_FILE
+            # The tree selects the file being edited, so that the two always agree.
+            selection["path"] = selection["file"]
+            set_revision(lambda value: value + 1)
+
+    # `submission/strategy.py` is the entry point, so it cannot be deleted.
+    create_button = mo.ui.button(label="Create", on_click=_create)
+    delete_button = mo.ui.button(
+        label=f"Delete {_item.name}" if _item is not None else "Delete",
+        kind="danger",
+        on_click=_delete,
+        disabled=_item is None or is_strategy(_item),
+    )
+
+    def _report_save_error(path, error):
+        set_notice(
+            ("danger", f"Could not save {display_name(path)}", str(error), "save")
         )
-    mo.vstack(_sections)
-    return
+
+    def _on_saved(was_pending):
+        notice = get_notice()
+        # A save error goes once nothing is unsaved; other notices stay.
+        if notice is not None and len(notice) == 4 and not unsaved:
+            set_notice(None)
+        elif was_pending:
+            set_pending(lambda value: value + 1)
+
+    def _make_editor(text):
+        return mo.ui.code_editor(
+            value=text,
+            language="python",
+            # Saved when the editor loses focus, so the file is written once per edit
+            # instead of on every keystroke, and the rest of this cell is not re-run.
+            debounce=True,
+            on_change=save_on_change(_current, unsaved, _report_save_error, _on_saved),
+        )
+
+    _name = display_name(_current)
+    if is_strategy(_current) and _current.is_symlink():
+        file_editor = mo.callout(
+            "`submission/strategy.py` is a link. Replace it with a regular file "
+            "outside the notebook.",
+            kind="warn",
+        )
+    elif not _current.exists():
+        file_editor = mo.callout(
+            f"`{_name}` is missing. Create it with New file.", kind="warn"
+        )
+    elif not writable_in_submission(_current):
+        file_editor = mo.callout(
+            f"`{_name}` is a link. Edit the file it points to, or delete the link.",
+            kind="warn",
+        )
+    elif _current in unsaved:
+        file_editor = _make_editor(unsaved[_current])
+    elif _current.stat().st_size > EDITOR_MAX_BYTES:
+        file_editor = mo.callout(
+            f"`{_name}` is larger than {EDITOR_MAX_BYTES // 1024} KB, "
+            "so it cannot be edited here.",
+            kind="warn",
+        )
+    else:
+        try:
+            file_editor = _make_editor(_current.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError):
+            file_editor = mo.callout(
+                "This file cannot be edited here: it is not readable UTF-8 text.",
+                kind="warn",
+            )
+
+    _notice = get_notice()
+    _messages = (
+        []
+        if _notice is None
+        else [mo.callout(_notice[2], kind=_notice[0], title=_notice[1])]
+    )
+    _pending_names = [display_name(p) for p in unsaved]
+    if _pending_names:
+        _messages.insert(
+            0,
+            mo.callout(
+                f"Not saved yet: {', '.join(_pending_names)}. "
+                "Other sections use the files on disk.",
+                kind="warn",
+            ),
+        )
+    mo.vstack(
+        [
+            mo.md("## Submission"),
+            mo.md(
+                """
+                Select a file to edit. It is saved when the editor loses focus.
+                After editing a file elsewhere, restart the kernel and run all cells.
+                """
+            ),
+            mo.hstack(
+                [
+                    mo.vstack([submission_files]).style(flex="0 0 500px"),
+                    mo.vstack(
+                        [
+                            mo.hstack(
+                                [new_name, create_button],
+                                justify="start",
+                                align="end",
+                                gap=0.5,
+                                wrap=True,
+                            ),
+                            mo.hstack(
+                                [confirm, delete_button],
+                                justify="start",
+                                align="center",
+                                gap=0.5,
+                                wrap=True,
+                            ),
+                            *_messages,
+                        ]
+                    ).style(flex="0 0 340px", min_width="0"),
+                ],
+                align="start",
+                wrap=True,
+                gap=1,
+            ),
+            mo.md(f"`{_name}`"),
+            file_editor,
+        ]
+    )
+    return new_name, confirm, create_button, delete_button, file_editor
 
 
 @app.cell(hide_code=True)

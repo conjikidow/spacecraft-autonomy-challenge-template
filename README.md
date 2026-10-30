@@ -58,7 +58,9 @@ or with `Ctrl+.` (`Cmd+.` on macOS).
 The notebook shows the spacecraft, the mission, and the strategy API.
 It then has one section for each step of working on your strategy:
 
-- **Strategy**: edit `submission/strategy.py`.
+- **Submission**: pick a file under `submission/` in the tree and edit it, starting with `submission/strategy.py`.
+  Create a new file, or delete the selected file or empty folder, with the buttons next to the tree.
+  `submission/strategy.py` cannot be deleted.
 - **Try a scenario**: run your strategy on one public scenario, with full details.
 - **Pack**: build `submission.zip` for download.
 - **Check on public scenarios**: pack `submission/` and `pyproject.toml` and evaluate them on all public scenarios

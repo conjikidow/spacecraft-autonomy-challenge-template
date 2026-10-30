@@ -56,7 +56,9 @@ uv run marimo edit app.py
 ノートブックには，宇宙機，ミッション，戦略 API が表示されます。
 続いて，戦略に取り組む各ステップに対応するセクションがあります。
 
-- **Strategy**：`submission/strategy.py` を編集します。
+- **Submission**：`submission/` 以下のファイルをツリーから選んで編集します（最初は `submission/strategy.py`）。
+  ツリーの右のボタンで新しいファイルを作成したり，選択中のファイルまたは空のフォルダを削除したりできます。
+  `submission/strategy.py` は削除できません。
 - **Try a scenario**：戦略を 1 つの公開シナリオで実行し，詳細を表示します。
 - **Pack**：ダウンロード用の `submission.zip` を作成します。
 - **Check on public scenarios**：`submission/` と `pyproject.toml` をまとめ，評価サーバーと同じ方法ですべての公開シナリオで評価します。
