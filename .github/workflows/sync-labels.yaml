@@ -22,6 +22,7 @@ permissions: {}
 jobs:
   sync-labels:
     name: Sync labels
+    if: github.repository == 'conjikidow/spacecraft-autonomy-challenge-template'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

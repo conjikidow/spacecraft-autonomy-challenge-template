@@ -23,6 +23,7 @@ permissions: {}
 jobs:
   determine-changes:
     name: Determine changes
+    if: github.repository == 'conjikidow/spacecraft-autonomy-challenge-template'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -367,6 +368,7 @@ jobs:
 
   check-spelling:
     name: Check spelling
+    if: github.repository == 'conjikidow/spacecraft-autonomy-challenge-template'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -383,6 +385,7 @@ jobs:
 
   lint-commit-messages:
     name: Lint commit messages
+    if: github.repository == 'conjikidow/spacecraft-autonomy-challenge-template'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -421,6 +424,7 @@ jobs:
 
   run-prek-hooks:
     name: Run prek hooks
+    if: github.repository == 'conjikidow/spacecraft-autonomy-challenge-template'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

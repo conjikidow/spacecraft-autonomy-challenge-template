@@ -18,7 +18,8 @@ jobs:
   label-pull-request:
     name: Label pull request
     if: >-
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.repository == 'conjikidow/spacecraft-autonomy-challenge-template'
+      && github.event.pull_request.head.repo.full_name == github.repository
       && (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.changes.title != null)
     concurrency:
       group: pull-request-labels-${{ github.ref }}
@@ -63,8 +64,8 @@ jobs:
   lint-pull-request-title:
     name: Lint pull request title
     if: >-
-      github.event.action != 'edited'
-      || github.event.changes.title != null
+      github.repository == 'conjikidow/spacecraft-autonomy-challenge-template'
+      && (github.event.action != 'edited' || github.event.changes.title != null)
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
