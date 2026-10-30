@@ -152,25 +152,26 @@ a practice result also shows this score, as **Fixed cases**, when the server rep
 - You can have one practice submission in flight at a time; submit again after the previous one has finished.
 - By default, a practice submission has a total limit of 600 s and each case a limit of 300 s.
   These are settings of the evaluation server, and the organizers may change them.
-  A case that exceeds its limit, or a submission that exceeds the total limit, shows as `TIMEOUT`.
-- If you use a planning engine, note that `up-lpg` needs `setuptools<81`
-  with the current releases.
+  A case that exceeds its limit shows as `TIMEOUT`.
+  When the total limit is exceeded, the case that was running and the remaining cases show as `TIMEOUT`,
+  and the submission status stays completed.
+- If you use a planning engine, note that `up-lpg` needs `setuptools<81` with the current releases.
   Java-based engines need a Java runtime, and the server may apply a default heap setting to them.
 
 ## Documentation
 
 The core repository documents the API and the challenge, at the commit this template uses:
 
-- [Writing a Strategy](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/strategy.md): lifecycle, mission brief, and commander
-- [Commands and Timeline](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/timeline.md): command types and ordering rules
-- [Spacecraft Model](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/spacecraft-model.md): state, dynamics, and telemetry
-- [Simulation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/simulation.md): order of events and termination
-- [Challenge Problem](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/challenge.md): the problem and its public scenarios
-- [Evaluation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/evaluation.md): the metrics printed after a run
-- [Command-Line Runner](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/README.md#command-line-runner): options and exit status of `run`, `pack`, and `check`
-- [Submission Archives](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/submission.md): what `submission.zip` contains
-- [Participant Packages](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/dependencies.md): how the packages of `pyproject.toml` are reproduced
-- [Scoring](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/scoring.md): how a case and a suite are scored
+- [Writing a Strategy](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/strategy.md): lifecycle, mission brief, and commander
+- [Commands and Timeline](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/timeline.md): command types and ordering rules
+- [Spacecraft Model](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/spacecraft-model.md): state, dynamics, and telemetry
+- [Simulation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/simulation.md): order of events and termination
+- [Challenge Problem](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/challenge.md): the problem and its public scenarios
+- [Evaluation](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/evaluation.md): the metrics printed after a run
+- [Command-Line Runner](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/README.md#command-line-runner): options and exit status of `run`, `pack`, and `check`
+- [Submission Archives](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/submission.md): what `submission.zip` contains
+- [Participant Packages](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/dependencies.md): how the packages of `pyproject.toml` are reproduced
+- [Scoring](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/scoring.md): how a case and a suite are scored
 
 ## License
 

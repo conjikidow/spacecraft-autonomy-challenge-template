@@ -145,7 +145,8 @@ URL とトークンは `EVALUATION_SERVER_URL` と `EVALUATION_SERVER_TOKEN` か
 - 実行中の練習提出は参加者ごとに 1 件までです。前の提出が終わってから，もう一度提出してください。
 - 既定では，練習提出の合計の制限時間は 600 秒，各ケースの制限時間は 300 秒です。
   これらは評価サーバーの設定であり，主催者が変更することがあります。
-  制限時間を超えたケースや，合計の制限時間を超えた提出は `TIMEOUT` と表示されます。
+  制限時間を超えたケースは `TIMEOUT` と表示されます。
+  合計の制限時間を超えると，実行中だったケースと残りのケースが `TIMEOUT` と表示され，提出のステータスは完了のままです。
 - プランニングエンジンを使う場合，現行のリリースでは `up-lpg` に `setuptools<81` が必要です。
   Java ベースのエンジンには Java ランタイムが必要で，サーバーが既定のヒープ設定を適用することがあります。
 
@@ -154,16 +155,16 @@ URL とトークンは `EVALUATION_SERVER_URL` と `EVALUATION_SERVER_TOKEN` か
 API とチャレンジについては，core リポジトリのドキュメントを参照してください。
 リンク先は，このテンプレートが使用している core のバージョンのドキュメントです。
 
-- [戦略の書き方](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
-- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/timeline.ja.md)：コマンドの種類と順序規則
-- [宇宙機モデル](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
-- [シミュレーション](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/simulation.ja.md)：イベントの順序と終了条件
-- [チャレンジ問題](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
-- [評価](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
-- [コマンドラインツール](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/README.ja.md#コマンドラインツール)：`run`，`pack`，`check` のオプションと終了ステータス
-- [提出アーカイブ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/submission.ja.md)：`submission.zip` の内容
-- [参加者のパッケージ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/dependencies.ja.md)：`pyproject.toml` のパッケージの再現方法
-- [得点](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.0/docs/scoring.ja.md)：評価ケースと `Suite` の得点の計算方法
+- [戦略の書き方](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/strategy.ja.md)：ライフサイクル，`MissionBrief`，`Commander`
+- [コマンドとタイムライン](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/timeline.ja.md)：コマンドの種類と順序規則
+- [宇宙機モデル](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/spacecraft-model.ja.md)：状態，ダイナミクス，テレメトリ
+- [シミュレーション](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/simulation.ja.md)：イベントの順序と終了条件
+- [チャレンジ問題](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/challenge.ja.md)：チャレンジ問題とその公開シナリオ
+- [評価](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/evaluation.ja.md)：シミュレーション後に出力される評価指標
+- [コマンドラインツール](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/README.ja.md#コマンドラインツール)：`run`，`pack`，`check` のオプションと終了ステータス
+- [提出アーカイブ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/submission.ja.md)：`submission.zip` の内容
+- [参加者のパッケージ](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/dependencies.ja.md)：`pyproject.toml` のパッケージの再現方法
+- [得点](https://github.com/conjikidow/spacecraft-autonomy-challenge-core/blob/v2.0.1/docs/scoring.ja.md)：評価ケースと `Suite` の得点の計算方法
 
 ## ライセンス
 
