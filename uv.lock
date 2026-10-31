@@ -844,8 +844,8 @@ wheels = [
 
 [[package]]
 name = "spacecraft-autonomy-challenge-core"
-version = "2.0.1"
-source = { git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v2.0.1#42cf977df766aa8ece93ee65f5fb35e6f822c455" }
+version = "2.0.2"
+source = { git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v2.0.2#795c055610ae6c0af3973a4c87d60fce8e842376" }
 dependencies = [
     { name = "packaging" },
 ]
@@ -869,7 +869,7 @@ notebook = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "spacecraft-autonomy-challenge-core", git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v2.0.1" }]
+requires-dist = [{ name = "spacecraft-autonomy-challenge-core", git = "https://github.com/conjikidow/spacecraft-autonomy-challenge-core?tag=v2.0.2" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = "==0.17.1" }]
