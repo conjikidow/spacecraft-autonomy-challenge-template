@@ -88,6 +88,10 @@ with app.setup(hide_code=True):
         "https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
         f"/blob/v{__version__}/docs"
     )
+    CORE_EXAMPLES_URL = (
+        "https://github.com/conjikidow/spacecraft-autonomy-challenge-core"
+        f"/tree/v{__version__}/examples"
+    )
 
     FIELD_UNITS = {
         "_nms_per_s": "Nms/s",
@@ -503,7 +507,10 @@ def _():
                 ],
                 gap=1.5,
             ),
-            mo.md(f"Details: [Writing a Strategy]({CORE_DOCS_URL}/strategy.md)"),
+            mo.md(
+                f"Details: [Writing a Strategy]({CORE_DOCS_URL}/strategy.md), "
+                f"[Examples]({CORE_EXAMPLES_URL})"
+            ),
         ]
     )
     return
