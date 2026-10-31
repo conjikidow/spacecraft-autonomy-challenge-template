@@ -852,7 +852,7 @@ dependencies = [
 
 [[package]]
 name = "spacecraft-autonomy-challenge-submission"
-version = "2.1.0"
+version = "2.1.1"
 source = { virtual = "." }
 default-groups = ["dev", "notebook"]
 dependencies = [
